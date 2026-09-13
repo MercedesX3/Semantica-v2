@@ -45,13 +45,17 @@ export function makeCoverTexture(title: string, author: string) {
     ctx.lineWidth = 3;
     ctx.strokeRect(28, 28, w - 56, h - 56);
 
+    // Lines are placed by their vertical middle so the DOM copy of this cover
+    // in BookViewer (which morphs into it) can line up with plain CSS.
     ctx.fillStyle = "#e8cf8f";
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.font = "600 44px Georgia, 'Times New Roman', serif";
     const lines = wrapLines(ctx, title, w - 120);
     const lineH = 54;
-    const top = h * 0.4 - (lines.length * lineH) / 2;
-    lines.forEach((l, i) => ctx.fillText(l, w / 2, top + i * lineH));
+    lines.forEach((l, i) =>
+      ctx.fillText(l, w / 2, h * 0.4 + (i - (lines.length - 1) / 2) * lineH),
+    );
 
     ctx.font = "italic 24px Georgia, 'Times New Roman', serif";
     ctx.fillStyle = "rgba(232, 207, 143, 0.8)";

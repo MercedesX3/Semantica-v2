@@ -16,21 +16,27 @@ const books: Book[] = [
     id: 1,
     title: "The Great Gatsby",
     author: "F. Scott Fitzgerald",
+    cover: "/covers/gatsby.png",
   },
   {
     id: 2,
     title: "Pride and Prejudice",
     author: "Jane Austen",
+    cover: "/covers/PrideAndPrejudice.jpeg",
   },
   {
     id: 3,
     title: "The Legends of King Arthur and His Knights",
     author: "Sir Thomas Malory and Sir James Knowles",
+    cover: "/covers/king-arthur.png",
   },
 ];
 
 export default function BookShelf() {
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selected, setSelected] = useState<{
+    book: Book;
+    el: HTMLElement;
+  } | null>(null);
 
   return (
     <>
@@ -44,16 +50,21 @@ export default function BookShelf() {
                 title={book.title}
                 author={book.author}
                 cover={book.cover}
-                onClick={() => setSelectedBook(book)}
+                hidden={selected?.book.id === book.id}
+                onClick={(el) => !selected && setSelected({ book, el })}
               />
             ))}
           </div>
         </div>
       </section>
 
-      {/* 3D Book Viewer */}
-      {selectedBook && (
-        <BookViewer book={selectedBook} onClose={() => setSelectedBook(null)} />
+      {/* 3D Book Viewer — the card itself hides while its copy is in flight */}
+      {selected && (
+        <BookViewer
+          book={selected.book}
+          sourceEl={selected.el}
+          onClose={() => setSelected(null)}
+        />
       )}
     </>
   );

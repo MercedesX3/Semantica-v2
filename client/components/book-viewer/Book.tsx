@@ -36,6 +36,44 @@ const FLIP_PAGES = 6;
 const OPEN_SECONDS = 2.6;
 const CLOSE_SECONDS = 1.8;
 
+export const CAMERA_POSITION: [number, number, number] = [0, 0.6, 7.5];
+export const CAMERA_FOV = 45;
+const BOOK_TILT = -0.22; // leans the top of the book away from the camera
+
+/**
+ * Where the closed book's front cover lands on screen, in CSS pixels, for a
+ * canvas filling a `width` × `height` viewport. The DOM card flies to this
+ * rectangle before handing off to the 3D book, so the two line up exactly.
+ * Mirrors the transforms applied in <Book> at progress 0.
+ */
+export function closedCoverScreenRect(width: number, height: number) {
+  const camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, 0.1, 100);
+  camera.position.set(...CAMERA_POSITION);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld();
+
+  const tilt = new THREE.Matrix4().makeRotationX(BOOK_TILT);
+  const z = 2 * COVER_T + BLOCK_T;
+  let left = Infinity;
+  let right = -Infinity;
+  let top = Infinity;
+  let bottom = -Infinity;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      const v = new THREE.Vector3((sx * COVER_W) / 2, (sy * COVER_H) / 2, z)
+        .applyMatrix4(tilt)
+        .project(camera);
+      const px = ((v.x + 1) / 2) * width;
+      const py = ((1 - v.y) / 2) * height;
+      left = Math.min(left, px);
+      right = Math.max(right, px);
+      top = Math.min(top, py);
+      bottom = Math.max(bottom, py);
+    }
+  }
+  return { left, top, width: right - left, height: bottom - top };
+}
+
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const phase = (p: number, start: number, end: number) =>
   clamp01((p - start) / (end - start));
@@ -49,6 +87,8 @@ interface BookProps {
   closing: boolean;
   onToggle: () => void;
   onFullyClosed: () => void;
+  /** Called once the scene has drawn its first frame. */
+  onReady?: () => void;
 }
 
 export default function Book({
@@ -58,9 +98,11 @@ export default function Book({
   closing,
   onToggle,
   onFullyClosed,
+  onReady,
 }: BookProps) {
   const progress = useRef(0);
   const closedReported = useRef(false);
+  const readyReported = useRef(false);
 
   const book = useRef<THREE.Group>(null);
   const frontCover = useRef<THREE.Group>(null);
@@ -105,11 +147,11 @@ export default function Book({
     const cover = easeInOut(phase(p, 0, 0.42));
     const moved = 0.5 * easeInOut(phase(p, 0.25, 1)); // share of block on the left
 
-    // Closed, the book is turned a little so you can see its spine and depth;
-    // as it opens it squares up to the camera and slides so the spread is
-    // centred rather than the spine.
+    // Closed, the book faces the camera squarely — that is the pose the shelf
+    // card morphs into. It swings a little toward the reader while the cover
+    // lifts, and slides so the open spread ends up centred rather than the spine.
     if (book.current) {
-      book.current.rotation.y = 0.45 * (1 - cover);
+      book.current.rotation.y = 0.2 * Math.sin(Math.PI * cover);
       book.current.position.x = -(COVER_W / 2) * (1 - cover);
     }
 
@@ -157,6 +199,11 @@ export default function Book({
       closedReported.current = true;
       onFullyClosed();
     }
+
+    if (!readyReported.current) {
+      readyReported.current = true;
+      onReady?.();
+    }
   });
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
@@ -165,7 +212,7 @@ export default function Book({
   };
 
   return (
-    <group rotation={[-0.22, 0, 0]}>
+    <group rotation={[BOOK_TILT, 0, 0]}>
       <group ref={book} onClick={handleClick}>
         {/* Back cover */}
         <Cover

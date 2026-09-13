@@ -4,19 +4,24 @@ interface BookCardProps {
   title: string;
   author: string;
   cover?: string;
-  onClick: () => void;
+  /** While hidden, the viewer is flying a copy of this card. */
+  hidden?: boolean;
+  onClick: (el: HTMLElement) => void;
 }
 
 export default function BookCard({
   title,
   author,
   cover,
+  hidden = false,
   onClick,
 }: BookCardProps) {
   return (
     <button
-      onClick={onClick}
-      className="group relative h-72 w-48 overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105"
+      onClick={(e) => onClick(e.currentTarget)}
+      className={`group relative h-72 w-48 overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105 ${
+        hidden ? "invisible" : ""
+      }`}
     >
       {/* Book cover */}
       <div
