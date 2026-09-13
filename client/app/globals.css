@@ -10,6 +10,25 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-libre-baskerville);
+}
+
+h1 {
+  font-family: var(--font-libre-baskerville);
+  color: #113E00;
+  font-weight: 600;
+  font-size: 96px;
+}
+
+h2 {
+  font-family: var(--font-libre-baskerville);
+  font-weight: 600;
+  font-size: 28px;
+  color: #4D8937;
+}
+
+p {
+  font-family: var(--font-inter);
 }
 
 @media (prefers-color-scheme: dark) {
