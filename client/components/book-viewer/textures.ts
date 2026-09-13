@@ -65,6 +65,29 @@ export function makeCoverTexture(title: string, author: string) {
   });
 }
 
+/**
+ * A cover from an image file, cropped to the cover's proportions the way CSS
+ * `background-size: cover` would — so it matches the DOM copy that morphs into it.
+ */
+export function loadImageCoverTexture(src: string): Promise<THREE.CanvasTexture> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () =>
+      resolve(
+        canvasTexture((ctx) => {
+          const { w, h } = PAGE_PX;
+          const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
+          const dw = image.naturalWidth * scale;
+          const dh = image.naturalHeight * scale;
+          ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        }),
+      );
+    image.onerror = () => reject(new Error(`Could not load cover image: ${src}`));
+    image.src = src;
+  });
+}
+
 export function makeTitlePageTexture(title: string, author: string) {
   return canvasTexture((ctx) => {
     const { w, h } = PAGE_PX;

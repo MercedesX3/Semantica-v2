@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import Cover from "./Cover";
 import Page, { type PageHandle } from "./Page";
 import {
+  loadImageCoverTexture,
   makeCoverTexture,
   makeTextPageTexture,
   makeTitlePageTexture,
@@ -36,8 +37,21 @@ const FLIP_PAGES = 6;
 const OPEN_SECONDS = 2.6;
 const CLOSE_SECONDS = 1.8;
 
-export const CAMERA_POSITION: [number, number, number] = [0, 0.6, 7.5];
 export const CAMERA_FOV = 45;
+const CAMERA_DISTANCE = 7.5;
+const CAMERA_LIFT = 0.08; // height per unit of distance, so the viewing angle holds
+const SPREAD_MARGIN = 1.15; // open spread width as a share of the visible width
+
+/**
+ * Where the camera sits for a viewport of this aspect ratio. On narrow screens
+ * it backs away until the open two-page spread fits across the width.
+ */
+export function cameraPosition(aspect: number): [number, number, number] {
+  const halfFov = THREE.MathUtils.degToRad(CAMERA_FOV / 2);
+  const fitWidth = (COVER_W * SPREAD_MARGIN) / (Math.tan(halfFov) * aspect);
+  const distance = Math.max(CAMERA_DISTANCE, fitWidth);
+  return [0, distance * CAMERA_LIFT, distance];
+}
 const BOOK_TILT = -0.22; // leans the top of the book away from the camera
 
 /**
@@ -48,7 +62,7 @@ const BOOK_TILT = -0.22; // leans the top of the book away from the camera
  */
 export function closedCoverScreenRect(width: number, height: number) {
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, 0.1, 100);
-  camera.position.set(...CAMERA_POSITION);
+  camera.position.set(...cameraPosition(width / height));
   camera.lookAt(0, 0, 0);
   camera.updateMatrixWorld();
 
@@ -83,6 +97,8 @@ const easeInOut = (t: number) =>
 interface BookProps {
   title: string;
   author: string;
+  /** Cover image URL; without one the book gets a printed title cover. */
+  cover?: string;
   open: boolean;
   closing: boolean;
   onToggle: () => void;
@@ -94,6 +110,7 @@ interface BookProps {
 export default function Book({
   title,
   author,
+  cover,
   open,
   closing,
   onToggle,
@@ -131,6 +148,34 @@ export default function Book({
     () => () => Object.values(textures).forEach((t) => t.dispose()),
     [textures],
   );
+
+  // The image cover loads before the scene reports ready, so the handoff from
+  // the DOM card never shows the fallback cover first.
+  const [imageCover, setImageCover] = useState<{
+    src: string;
+    texture: THREE.Texture | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!cover) return undefined;
+    let cancelled = false;
+    let loaded: THREE.Texture | null = null;
+    loadImageCoverTexture(cover)
+      .then((texture) => {
+        loaded = texture;
+        if (cancelled) texture.dispose();
+        else setImageCover({ src: cover, texture });
+      })
+      .catch(() => !cancelled && setImageCover({ src: cover, texture: null }));
+    return () => {
+      cancelled = true;
+      loaded?.dispose();
+    };
+  }, [cover]);
+
+  const coverSettled = !cover || imageCover?.src === cover;
+  const frontTexture =
+    (imageCover && imageCover.src === cover && imageCover.texture) || textures.cover;
 
   useEffect(() => {
     if (!closing) closedReported.current = false;
@@ -200,7 +245,7 @@ export default function Book({
       onFullyClosed();
     }
 
-    if (!readyReported.current) {
+    if (coverSettled && !readyReported.current) {
       readyReported.current = true;
       onReady?.();
     }
@@ -269,7 +314,7 @@ export default function Book({
             height={COVER_H}
             thickness={COVER_T}
             position={[COVER_W / 2, 0, COVER_T / 2]}
-            frontTexture={textures.cover}
+            frontTexture={frontTexture}
           />
         </group>
       </group>
