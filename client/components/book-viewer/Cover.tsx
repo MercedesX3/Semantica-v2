@@ -3,29 +3,43 @@
 import * as THREE from "three";
 
 interface CoverProps {
+  width: number;
+  height: number;
+  thickness: number;
   position: [number, number, number];
-  rotation?: [number, number, number];
   color?: string;
-  children?: React.ReactNode;
+  /** Printed on the outside (+z) face. */
+  frontTexture?: THREE.Texture;
 }
 
+/** A cover board. Outside faces +z; the inside carries the endpaper. */
 export default function Cover({
+  width,
+  height,
+  thickness,
   position,
-  rotation = [0, 0, 0],
   color = "#241b3d",
-  children,
+  frontTexture,
 }: CoverProps) {
+  // Box face order: +x, -x, +y, -y, +z, -z
   return (
-    <mesh position={position} rotation={rotation}>
-      <boxGeometry args={[2.8, 0.15, 3.8]} />
-
+    <mesh position={position}>
+      <boxGeometry args={[width, height, thickness]} />
+      {[0, 1, 2, 3].map((i) => (
+        <meshStandardMaterial
+          key={i}
+          attach={`material-${i}`}
+          color={color}
+          roughness={0.65}
+        />
+      ))}
       <meshStandardMaterial
-        color={color}
-        roughness={0.7}
-        metalness={0.05}
+        attach="material-4"
+        color={frontTexture ? "#ffffff" : color}
+        map={frontTexture ?? null}
+        roughness={0.6}
       />
-
-      {children}
+      <meshStandardMaterial attach="material-5" color="#d9cbb0" roughness={0.9} />
     </mesh>
   );
 }

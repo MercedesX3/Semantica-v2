@@ -34,23 +34,8 @@ export default function BookShelf() {
 
   return (
     <>
-      <section className="min-h-screen px-8 py-20">
+      <section className=" px-8 py-20">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-12">
-            <p className="mb-2 text-sm uppercase tracking-[0.3em] text-purple-400">
-              Semantica
-            </p>
-
-            <h1 className="text-5xl font-bold text-black">
-              Discover your next story.
-            </h1>
-
-            <p className="mt-4 max-w-xl text-gray-700">
-              Explore books based on their emotional DNA, themes, characters,
-              and the way their stories feel.
-            </p>
-          </div>
-
           {/* Bookshelf */}
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {books.map((book) => (

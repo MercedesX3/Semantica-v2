@@ -1,4 +1,5 @@
 import ButterflyBackground from "@/components/butterflies/ButterflyBackground";
+import BookShelf from "@/components/bookshelf/BookShelf";
 
 export default function ExplorePage() {
   return (
@@ -11,6 +12,7 @@ export default function ExplorePage() {
           <h2 className="text-lg text-left whitespace-nowrap">
             Upload your book to explore its emotional DNA.
           </h2>
+          <BookShelf />
         </main>
       </div>
     </div>
