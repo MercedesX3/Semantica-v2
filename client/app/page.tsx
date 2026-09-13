@@ -250,7 +250,7 @@ export default function Home() {
                   Explore Books
                 </h3>
                 <p className="mt-3 leading-relaxed text-stone-600">
-                  Five public-domain classics from Project Gutenberg, already
+                  Five classics, from Frankenstein to The Great Gatsby, already
                   analyzed. Walk through the full pipeline: each chapter&apos;s
                   emotions, the arc across the book, which title fits your mood,
                   and the soundtrack made to read it by.
@@ -343,7 +343,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-16 text-sm text-stone-400">
-              Demo books are public-domain texts from Project Gutenberg.
+              Demo books are texts from Project Gutenberg.
             </p>
           </div>
         </section>

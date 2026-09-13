@@ -207,6 +207,7 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
             <Book
               title={book.title}
               author={book.author}
+              cover={book.cover}
               open={open}
               closing={closing}
               onToggle={() => viewing && !closing && setOpen((previous) => !previous)}
@@ -245,32 +246,41 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
           </div>
         </div>
 
-        {/* Face 2: the printed cover the 3D book wears (see makeCoverTexture) */}
-        <div
-          ref={coverFace}
-          className="absolute inset-0 opacity-0"
-          style={{ background: "linear-gradient(135deg, #3b2f63, #171329)" }}
-        >
-          <div className="absolute inset-[5.5%] border border-[#d6b46a]/80" />
-          {/* Sizes are the texture's canvas pixels ÷ its 512px width, in cqw */}
+        {/* Face 2: the cover the 3D book wears — its image, or the printed
+            title cover from makeCoverTexture when there isn't one */}
+        {book.cover ? (
           <div
-            className="absolute inset-x-[11.7%] top-[40%] -translate-y-1/2 text-center font-semibold text-[#e8cf8f]"
-            style={{ fontSize: "8.6cqw", lineHeight: "10.55cqw", fontFamily: COVER_FONT }}
-          >
-            {book.title}
-          </div>
+            ref={coverFace}
+            className="absolute inset-0 opacity-0"
+            style={{ background: `center / cover url(${book.cover})` }}
+          />
+        ) : (
           <div
-            className="absolute inset-x-[13.7%] top-[78%] text-center italic text-[#e8cf8f]/80"
-            style={{
-              fontSize: "4.7cqw",
-              lineHeight: "6.25cqw",
-              marginTop: "-3.125cqw",
-              fontFamily: COVER_FONT,
-            }}
+            ref={coverFace}
+            className="absolute inset-0 opacity-0"
+            style={{ background: "linear-gradient(135deg, #3b2f63, #171329)" }}
           >
-            {book.author}
+            <div className="absolute inset-[5.5%] border border-[#d6b46a]/80" />
+            {/* Sizes are the texture's canvas pixels ÷ its 512px width, in cqw */}
+            <div
+              className="absolute inset-x-[11.7%] top-[40%] -translate-y-1/2 text-center font-semibold text-[#e8cf8f]"
+              style={{ fontSize: "8.6cqw", lineHeight: "10.55cqw", fontFamily: COVER_FONT }}
+            >
+              {book.title}
+            </div>
+            <div
+              className="absolute inset-x-[13.7%] top-[78%] text-center italic text-[#e8cf8f]/80"
+              style={{
+                fontSize: "4.7cqw",
+                lineHeight: "6.25cqw",
+                marginTop: "-3.125cqw",
+                fontFamily: COVER_FONT,
+              }}
+            >
+              {book.author}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Chrome — only while the 3D book is on stage */}

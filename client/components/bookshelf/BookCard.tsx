@@ -19,7 +19,7 @@ export default function BookCard({
   return (
     <button
       onClick={(e) => onClick(e.currentTarget)}
-      className={`group relative h-72 w-48 overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105 ${
+      className={`group relative aspect-[2/3] w-full overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105 ${
         hidden ? "invisible" : ""
       }`}
     >

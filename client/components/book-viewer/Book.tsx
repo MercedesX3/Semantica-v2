@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import Cover from "./Cover";
 import Page, { type PageHandle } from "./Page";
 import {
+  loadImageCoverTexture,
   makeCoverTexture,
   makeTextPageTexture,
   makeTitlePageTexture,
@@ -83,6 +84,8 @@ const easeInOut = (t: number) =>
 interface BookProps {
   title: string;
   author: string;
+  /** Cover image URL; without one the book gets a printed title cover. */
+  cover?: string;
   open: boolean;
   closing: boolean;
   onToggle: () => void;
@@ -94,6 +97,7 @@ interface BookProps {
 export default function Book({
   title,
   author,
+  cover,
   open,
   closing,
   onToggle,
@@ -131,6 +135,34 @@ export default function Book({
     () => () => Object.values(textures).forEach((t) => t.dispose()),
     [textures],
   );
+
+  // The image cover loads before the scene reports ready, so the handoff from
+  // the DOM card never shows the fallback cover first.
+  const [imageCover, setImageCover] = useState<{
+    src: string;
+    texture: THREE.Texture | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!cover) return undefined;
+    let cancelled = false;
+    let loaded: THREE.Texture | null = null;
+    loadImageCoverTexture(cover)
+      .then((texture) => {
+        loaded = texture;
+        if (cancelled) texture.dispose();
+        else setImageCover({ src: cover, texture });
+      })
+      .catch(() => !cancelled && setImageCover({ src: cover, texture: null }));
+    return () => {
+      cancelled = true;
+      loaded?.dispose();
+    };
+  }, [cover]);
+
+  const coverSettled = !cover || imageCover?.src === cover;
+  const frontTexture =
+    (imageCover && imageCover.src === cover && imageCover.texture) || textures.cover;
 
   useEffect(() => {
     if (!closing) closedReported.current = false;
@@ -200,7 +232,7 @@ export default function Book({
       onFullyClosed();
     }
 
-    if (!readyReported.current) {
+    if (coverSettled && !readyReported.current) {
       readyReported.current = true;
       onReady?.();
     }
@@ -269,7 +301,7 @@ export default function Book({
             height={COVER_H}
             thickness={COVER_T}
             position={[COVER_W / 2, 0, COVER_T / 2]}
-            frontTexture={textures.cover}
+            frontTexture={frontTexture}
           />
         </group>
       </group>

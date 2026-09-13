@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import ButterflyBackground from "@/components/butterflies/ButterflyBackground";
 import BackHomeButton from "@/components/BackHomeButton";
+import BookAnalysisPanel from "@/components/upload/BookAnalysisPanel";
+import { useBookAnalysis } from "@/hooks/useBookAnalysis";
 import { FileText, Loader2, Check, Info } from "lucide-react";
 
 export default function UploadPage() {
@@ -11,15 +13,23 @@ export default function UploadPage() {
   const [success, setSuccess] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    state: analysis,
+    start: startAnalysis,
+    reset: resetAnalysis,
+  } = useBookAnalysis();
+  const analyzing = analysis.status === "running";
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
+      resetAnalysis();
       setLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setFile(selectedFile);
       setLoading(false);
       setSuccess(true);
+      console.log("File uploaded:", selectedFile.name, selectedFile.size);
     }
   };
 
@@ -48,7 +58,7 @@ export default function UploadPage() {
         <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-center px-4">
           <div className="w-full flex justify-between items-start mb-8">
             <div>
-              <h1>UPLOAD</h1>
+              <h1 className="pt-8">UPLOAD</h1>
               <h2 className="text-lg text-left whitespace-nowrap">
                 Upload your book to explore its emotional DNA.
               </h2>
@@ -170,11 +180,17 @@ export default function UploadPage() {
                     </div>
                   </div>
                 </div>
-                <button className="px-6 py-2 bg-[#4D8937] text-white rounded-lg font-medium hover:bg-[#3a6b2b] transition-all duration-300">
-                  Submit
+                <button
+                  onClick={() => startAnalysis(file)}
+                  disabled={analyzing}
+                  className="px-6 py-2 bg-[#4D8937] text-white rounded-lg font-medium hover:bg-[#3a6b2b] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {analyzing ? "Analyzing..." : "Submit"}
                 </button>
               </div>
             )}
+
+            <BookAnalysisPanel state={analysis} fileName={file?.name ?? "book.pdf"} />
           </div>
         </main>
       </div>

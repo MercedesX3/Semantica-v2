@@ -9,10 +9,10 @@ export default function ExplorePage() {
         <ButterflyBackground />
         <BackHomeButton />
 
-        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-center px-4">
+        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-center px-4 py-8">
           <h1>EXPLORE</h1>
           <h2 className="text-lg text-left whitespace-nowrap">
-            Upload your book to explore its emotional DNA.
+            Find out what Semantica has to say about your favorite books
           </h2>
           <BookShelf />
         </main>
