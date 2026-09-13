@@ -116,7 +116,7 @@ export default function BookAnalysisPanel({
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-stone-300 bg-white p-4">
+    <div className="mt-6 rounded-lg border border-stone-300 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-medium text-stone-900">
           Emotional breakdown · {state.results.length} sections

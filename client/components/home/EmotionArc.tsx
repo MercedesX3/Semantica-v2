@@ -156,7 +156,7 @@ export default function EmotionArc({
   return (
     <div
       ref={ref}
-      className="rounded-3xl border border-stone-200 bg-stone-50/70 p-5 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:p-6"
+      className="rounded-3xl border border-stone-200 bg-stone-50/70 p-4 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:p-6"
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-serif text-lg text-[#113E00]">{title}</span>

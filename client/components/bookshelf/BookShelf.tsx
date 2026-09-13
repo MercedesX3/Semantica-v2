@@ -52,10 +52,10 @@ export default function BookShelf() {
 
   return (
     <>
-      <section className="w-full py-10">
+      <section className="w-full pt-10">
         <div className="mx-auto max-w-7xl">
           {/* Bookshelf */}
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
             {books.map((book) => (
               <BookCard
                 key={book.id}

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ButterflyBackground from "@/components/butterflies/ButterflyBackground";
 import EmotionArc from "@/components/home/EmotionArc";
+import { CARD, FRAME } from "@/components/PageShell";
 
 /*
  * Note on type: globals.css styles bare h1, h2 and p, and those unlayered rules
@@ -75,12 +76,12 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-[#D7D8D0] p-4 font-sans sm:p-10">
-      <div className="relative flex-1 overflow-hidden rounded-[40px] bg-white">
+    <div className={`flex min-h-screen flex-1 flex-col font-sans ${FRAME}`}>
+      <div className={`relative flex-1 overflow-hidden ${CARD}`}>
         {/* ── Hero ─────────────────────────────────────────────
             The butterflies fill this section only, and fly in the strip to
             the left of <main> (they measure it), so keep the two together. */}
-        <section className="relative flex min-h-[calc(100svh-2rem)] sm:min-h-[calc(100svh-5rem)]">
+        <section className="relative flex min-h-[calc(100svh-1.5rem)] sm:min-h-[calc(100svh-3rem)] lg:min-h-[calc(100svh-5rem)]">
           <ButterflyBackground />
 
           <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-center px-6 py-24">

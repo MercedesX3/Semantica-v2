@@ -37,8 +37,21 @@ const FLIP_PAGES = 6;
 const OPEN_SECONDS = 2.6;
 const CLOSE_SECONDS = 1.8;
 
-export const CAMERA_POSITION: [number, number, number] = [0, 0.6, 7.5];
 export const CAMERA_FOV = 45;
+const CAMERA_DISTANCE = 7.5;
+const CAMERA_LIFT = 0.08; // height per unit of distance, so the viewing angle holds
+const SPREAD_MARGIN = 1.15; // open spread width as a share of the visible width
+
+/**
+ * Where the camera sits for a viewport of this aspect ratio. On narrow screens
+ * it backs away until the open two-page spread fits across the width.
+ */
+export function cameraPosition(aspect: number): [number, number, number] {
+  const halfFov = THREE.MathUtils.degToRad(CAMERA_FOV / 2);
+  const fitWidth = (COVER_W * SPREAD_MARGIN) / (Math.tan(halfFov) * aspect);
+  const distance = Math.max(CAMERA_DISTANCE, fitWidth);
+  return [0, distance * CAMERA_LIFT, distance];
+}
 const BOOK_TILT = -0.22; // leans the top of the book away from the camera
 
 /**
@@ -49,7 +62,7 @@ const BOOK_TILT = -0.22; // leans the top of the book away from the camera
  */
 export function closedCoverScreenRect(width: number, height: number) {
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, 0.1, 100);
-  camera.position.set(...CAMERA_POSITION);
+  camera.position.set(...cameraPosition(width / height));
   camera.lookAt(0, 0, 0);
   camera.updateMatrixWorld();
 

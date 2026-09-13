@@ -26,7 +26,7 @@ const Environment = dynamic(
   { ssr: false },
 );
 
-import Book, { CAMERA_FOV, CAMERA_POSITION, closedCoverScreenRect } from "./Book";
+import Book, { CAMERA_FOV, cameraPosition, closedCoverScreenRect } from "./Book";
 
 /*
  * The shelf card becomes the 3D book without a cut:
@@ -84,6 +84,7 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
   const [sceneReady, setSceneReady] = useState(false);
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [camera] = useState(() => cameraPosition(window.innerWidth / window.innerHeight));
 
   const backdrop = useRef<HTMLDivElement>(null);
   const flyer = useRef<HTMLDivElement>(null);
@@ -197,7 +198,7 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
       <div className={`absolute inset-0 ${shownWhileViewing}`} style={handoff}>
         <Suspense fallback={null}>
           <Canvas
-            camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
+            camera={{ position: camera, fov: CAMERA_FOV }}
             onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
           >
             <ambientLight intensity={0.8} />
@@ -215,7 +216,11 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
               onReady={() => setSceneReady(true)}
             />
 
-            <OrbitControls enablePan={false} minDistance={4} maxDistance={10} />
+            <OrbitControls
+              enablePan={false}
+              minDistance={4}
+              maxDistance={Math.max(10, camera[2] + 2.5)}
+            />
           </Canvas>
         </Suspense>
       </div>
@@ -287,20 +292,22 @@ export default function BookViewer({ book, sourceEl, onClose }: BookViewerProps)
       <div className={shownWhileViewing} style={handoff}>
         <button
           onClick={requestClose}
-          className="absolute right-6 top-6 z-50 rounded-full bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-md transition hover:bg-white/20"
+          className="absolute right-4 top-4 z-50 rounded-full sm:right-6 sm:top-6 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-md transition hover:bg-white/20"
         >
           Close
         </button>
 
-        <div className="pointer-events-none absolute left-8 top-8 z-40 text-white">
+        <div className="pointer-events-none absolute left-5 right-24 top-5 z-40 text-white sm:left-8 sm:top-8">
           <p className="text-sm uppercase tracking-[0.25em] text-purple-400">
             Selected book
           </p>
-          <h2 className="mt-2 text-3xl font-bold">{book.title}</h2>
+          <h2 className="mt-2 font-bold" style={{ fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.2 }}>
+            {book.title}
+          </h2>
           <p className="mt-1 text-white/60">{book.author}</p>
         </div>
 
-        <p className="pointer-events-none absolute bottom-6 left-1/2 z-40 -translate-x-1/2 text-xs uppercase tracking-[0.2em] text-white/50">
+        <p className="pointer-events-none absolute inset-x-6 bottom-6 z-40 text-center text-xs uppercase tracking-[0.2em] text-white/50">
           Click the book to {open ? "close" : "open"} it · drag to look around
         </p>
       </div>
