@@ -76,7 +76,7 @@ export default function UploadPage() {
                 title and the emotion scores are saved to Semantica. This
                 means:
               </p>
-              <ul className="text-sm text-stone-700 mt-3 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-stone-700 mt-3 space-y-1 list-disc pl-5">
                 <li>Complete privacy - your PDFs never leave your device</li>
                 <li>Full compliance with copyright laws</li>
                 <li>No text from your book is ever sent or stored</li>
@@ -160,12 +160,12 @@ export default function UploadPage() {
         </div>
 
         {file && success && (
-          <div className="mt-6 flex items-center justify-between gap-4 border border-stone-300 rounded-lg p-4 bg-stone-50">
-            <div className="flex items-center gap-3">
-              <FileText className="w-6 h-6 text-stone-600" />
-              <div className="text-left">
-                <p className="font-medium text-stone-900">{file.name}</p>
-                <div className="flex gap-4 text-sm text-stone-500">
+          <div className="mt-6 flex flex-col gap-4 border border-stone-300 rounded-lg p-4 bg-stone-50 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <FileText className="w-6 h-6 flex-none text-stone-600" />
+              <div className="min-w-0 text-left">
+                <p className="font-medium text-stone-900 break-words">{file.name}</p>
+                <div className="flex flex-wrap gap-x-4 text-sm text-stone-500">
                   <span>{formatFileSize(file.size)}</span>
                   <span>{formatDate(new Date(file.lastModified))}</span>
                 </div>
@@ -174,7 +174,7 @@ export default function UploadPage() {
             <button
               onClick={() => startAnalysis(file)}
               disabled={analyzing}
-              className="px-6 py-2 bg-[#4D8937] text-white rounded-lg font-medium hover:bg-[#3a6b2b] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full flex-none px-6 py-2.5 bg-[#4D8937] text-white rounded-lg font-medium hover:bg-[#3a6b2b] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-2"
             >
               {analyzing ? "Analyzing..." : "Submit"}
             </button>

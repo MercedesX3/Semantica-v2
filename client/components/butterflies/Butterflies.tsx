@@ -60,6 +60,24 @@ export default function Butterfly() {
 
     let bandRight = 0;
 
+    /*
+     * Quiet mode. On narrow screens there is no room
+     * for a strip beside <main>, so the butterflies
+     * have to share space with the text. They shrink,
+     * fade, slow down and thin out so the words stay
+     * readable.
+     */
+    let quiet = false;
+    let scale = 1;
+    let halfSpan = HALF_SPAN;
+
+    const QUIET_SCALE = 0.5;
+    const QUIET_ALPHA = 0.22;
+    const QUIET_PARTICLE_ALPHA = 0.25;
+    const QUIET_SPEED = 0.6;
+    const QUIET_MAX = 3;
+    const QUIET_SPAWN_CHANCE = 0.004;
+
     const getRandomValue = (min: number, max: number) => {
       return min + (max - min) * Math.random();
     };
@@ -89,7 +107,11 @@ export default function Butterfly() {
         bandRight = width * 0.25;
       }
 
-      bandRight = Math.max(bandRight, HALF_SPAN * 2 + 20);
+      quiet = bandRight < HALF_SPAN * 2 + 20;
+      scale = quiet ? QUIET_SCALE : 1;
+      halfSpan = HALF_SPAN * scale;
+
+      if (quiet) bandRight = width;
     };
 
     const createButterfly = (): ButterflyData => {
@@ -97,12 +119,12 @@ export default function Butterfly() {
         theta: 0,
         phi: 0,
 
-        x: getRandomValue(HALF_SPAN, bandRight - HALF_SPAN),
+        x: getRandomValue(halfSpan, bandRight - halfSpan),
 
         y: height + THRESHOLD,
 
         vx: getRandomValue(-0.25, 0.25),
-        vy: -3,
+        vy: quiet ? -3 * QUIET_SPEED : -3,
 
         swingRate: getRandomValue(0.5, 1),
       };
@@ -112,7 +134,7 @@ export default function Butterfly() {
       const theta = getRandomValue(0, Math.PI * 2);
 
       return {
-        x: butterfly.x + getRandomValue(-50, 50),
+        x: butterfly.x + getRandomValue(-50, 50) * scale,
         y: butterfly.y,
 
         vx: Math.cos(theta),
@@ -141,7 +163,7 @@ export default function Butterfly() {
         104,
         42%,
         50%,
-        ${particle.opacity}
+        ${particle.opacity * (quiet ? QUIET_PARTICLE_ALPHA : 1)}
       )`;
 
       context.arc(0, 0, 2, 0, Math.PI * 2, false);
@@ -167,6 +189,10 @@ export default function Butterfly() {
       context.translate(butterfly.x, butterfly.y);
 
       context.rotate(Math.atan2(butterfly.vx, -butterfly.vy));
+
+      context.scale(scale, scale);
+
+      if (quiet) context.globalAlpha = QUIET_ALPHA;
 
       // Draw both wings
       for (let side = -1; side <= 1; side += 2) {
@@ -326,13 +352,13 @@ export default function Butterfly() {
       butterfly.y += butterfly.vy;
 
       // Stay inside the left strip
-      if (butterfly.x < HALF_SPAN) {
-        butterfly.x = HALF_SPAN;
+      if (butterfly.x < halfSpan) {
+        butterfly.x = halfSpan;
         butterfly.vx = Math.abs(butterfly.vx);
       }
 
-      if (butterfly.x > bandRight - HALF_SPAN) {
-        butterfly.x = bandRight - HALF_SPAN;
+      if (butterfly.x > bandRight - halfSpan) {
+        butterfly.x = bandRight - halfSpan;
         butterfly.vx = -Math.abs(butterfly.vx);
       }
 
@@ -377,7 +403,13 @@ export default function Butterfly() {
       }
 
       // Spawn another butterfly
-      if (butterflies.length === 0 || Math.random() < 0.01) {
+      const spawnChance = quiet ? QUIET_SPAWN_CHANCE : 0.01;
+      const roomForMore = !quiet || butterflies.length < QUIET_MAX;
+
+      if (
+        butterflies.length === 0 ||
+        (roomForMore && Math.random() < spawnChance)
+      ) {
         butterflies.push(createButterfly());
       }
     };

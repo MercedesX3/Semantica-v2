@@ -58,13 +58,23 @@ const ILLUSTRATIVE: ArcSeries[] = [
   },
 ];
 
-const W = 560;
-const H = 260;
+// The chart draws in real pixels at whatever width it's given, so labels stay a
+// readable size on a phone instead of shrinking with a fixed 560-unit drawing.
+const DEFAULT_W = 560;
+const MIN_W = 240;
+const MIN_TICK_GAP = 28;
+
+/** Wide layouts keep the original 560×260 shape; narrow ones get taller. */
+const heightFor = (width: number) =>
+  width >= 480 ? Math.round(width * (260 / 560)) : Math.round(Math.max(190, width * 0.7));
 const PAD = { top: 20, right: 16, bottom: 34, left: 16 };
 const AXIS_GUTTER = 28;
-const MAX_TICKS = 12;
 
-/** Smooth line through the points (Catmull-Rom, drawn as cubic Béziers). */
+/**
+ * Smooth line through the points (Catmull-Rom, drawn as cubic Béziers).
+ * Control points are held within each segment's own vertical range, so a sharp
+ * jump never swings the curve past a real value — above a peak or below zero.
+ */
 function smoothPath(pts: (readonly [number, number])[]) {
   if (pts.length === 0) return "";
   let d = `M ${pts[0][0]} ${pts[0][1]}`;
@@ -73,8 +83,11 @@ function smoothPath(pts: (readonly [number, number])[]) {
     const p1 = pts[i];
     const p2 = pts[i + 1];
     const p3 = pts[i + 2] ?? p2;
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    const lo = Math.min(p1[1], p2[1]);
+    const hi = Math.max(p1[1], p2[1]);
+    const hold = (v: number) => Math.min(hi, Math.max(lo, v));
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, hold(p1[1] + (p2[1] - p0[1]) / 6)];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, hold(p2[1] - (p3[1] - p1[1]) / 6)];
     d += ` C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${p2[0]} ${p2[1]}`;
   }
   return d;
@@ -98,6 +111,21 @@ export default function EmotionArc({
   const [drawn, setDrawn] = useState(false);
   const [hidden, setHidden] = useState(() => new Set(initiallyHidden));
   const [hover, setHover] = useState<number | null>(null);
+  const [W, setW] = useState(DEFAULT_W);
+  const H = heightFor(W);
+
+  // Match the drawing to the rendered width. ResizeObserver fires once on
+  // observe, so this also sets the first measurement.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.max(MIN_W, Math.round(entry.contentRect.width));
+      setW((prev) => (prev === next ? prev : next));
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
   const count = Math.max(0, ...series.map((s) => s.values.length));
   const visible = series.filter((s) => !hidden.has(s.name));
@@ -114,7 +142,8 @@ export default function EmotionArc({
   const y = (v: number) =>
     PAD.top + (1 - Math.min(v, yMax) / yMax) * (H - PAD.top - PAD.bottom);
 
-  const tickEvery = Math.ceil(count / MAX_TICKS);
+  const maxTicks = Math.max(2, Math.floor((W - left - PAD.right) / MIN_TICK_GAP) + 1);
+  const tickEvery = Math.ceil(count / maxTicks);
 
   // Draw the lines the first time the chart scrolls into view.
   useEffect(() => {
@@ -156,7 +185,7 @@ export default function EmotionArc({
   return (
     <div
       ref={ref}
-      className="rounded-3xl border border-stone-200 bg-stone-50/70 p-4 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:p-6"
+      className="rounded-2xl border border-stone-200 bg-stone-50/70 p-3 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:rounded-3xl sm:p-6"
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-serif text-lg text-[#113E00]">{title}</span>
@@ -171,11 +200,12 @@ export default function EmotionArc({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
-          className="h-auto w-full touch-none"
+          className="block h-auto w-full touch-pan-y"
           role="img"
           aria-label={`Line chart of ${series.map((s) => s.name.toLowerCase()).join(", ")} across ${count} ${xLabel.toLowerCase()}s.`}
           onPointerMove={onPointerMove}
-          onPointerLeave={() => setHover(null)}
+          onPointerDown={onPointerMove}
+          onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
         >
           {[0.25, 0.5, 0.75].map((f) => (
             <g key={f}>

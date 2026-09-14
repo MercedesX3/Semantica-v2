@@ -3,3 +3,4 @@ infra/.terraform/
 infra/*.tfstate*
 infra/*.lock.hcl
 infra/lambda_function.zip
+.DS_Store

@@ -20,7 +20,7 @@ export default function PageShell({ children }: { children: ReactNode }) {
         <ButterflyBackground />
         <BackHomeButton />
 
-        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-center px-6 pt-24 pb-16 sm:px-10 sm:pt-28 sm:pb-20">
+        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-start px-6 pt-24 pb-16 sm:justify-center sm:px-10 sm:pt-28 sm:pb-20">
           {children}
         </main>
       </div>
