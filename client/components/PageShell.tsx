@@ -13,14 +13,38 @@ export const CARD = "rounded-[28px] sm:rounded-[40px] bg-white";
  * The butterflies measure <main>'s left edge to stay out of the text, so the
  * content has to be the <main> inside this card.
  */
-export default function PageShell({ children }: { children: ReactNode }) {
+export default function PageShell({
+  children,
+  fit = false,
+  backHref,
+  backLabel,
+}: {
+  children: ReactNode;
+  /**
+   * Lock the page to the viewport on large screens: no scrolling, and a wider
+   * column so side-by-side content fits. Phones still scroll.
+   */
+  fit?: boolean;
+  backHref?: string;
+  backLabel?: string;
+}) {
   return (
-    <div className={`flex min-h-screen flex-1 flex-col font-sans ${FRAME}`}>
-      <div className={`relative flex flex-1 overflow-hidden ${CARD}`}>
+    <div
+      className={`flex min-h-screen flex-1 flex-col font-sans ${FRAME} ${
+        fit ? "lg:h-screen lg:flex-none lg:overflow-hidden" : ""
+      }`}
+    >
+      <div className={`relative flex flex-1 overflow-hidden ${CARD} ${fit ? "lg:min-h-0" : ""}`}>
         <ButterflyBackground />
-        <BackHomeButton />
+        <BackHomeButton href={backHref} label={backLabel} />
 
-        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-start px-6 pt-24 pb-16 sm:justify-center sm:px-10 sm:pt-28 sm:pb-20">
+        <main
+          className={
+            fit
+              ? "relative z-10 mx-auto flex w-full max-w-6xl flex-col px-6 pt-24 pb-10 sm:px-10 sm:pt-28 lg:min-h-0 lg:pt-24 lg:pb-10"
+              : "relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start justify-start px-6 pt-24 pb-16 sm:justify-center sm:px-10 sm:pt-28 sm:pb-20"
+          }
+        >
           {children}
         </main>
       </div>

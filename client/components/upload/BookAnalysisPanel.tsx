@@ -14,7 +14,7 @@ const STAGE_LABEL = {
   INFERENCE: "Analyzing emotions",
 } as const;
 
-const EMOTION_COLOR: Record<Emotion, string> = {
+export const EMOTION_COLOR: Record<Emotion, string> = {
   joy: "#4D8937",
   sadness: "#6B5B95",
   anger: "#B4695A",
@@ -24,7 +24,7 @@ const EMOTION_COLOR: Record<Emotion, string> = {
   neutral: "#A8A29E",
 };
 
-const capitalize = (word: string) => word[0].toUpperCase() + word.slice(1);
+export const capitalize =(word: string) => word[0].toUpperCase() + word.slice(1);
 
 const dominant = (row: ChapterEmotions) =>
   EMOTIONS.filter((e) => e !== "neutral").reduce((best, e) =>

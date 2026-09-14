@@ -1,27 +1,17 @@
-"use client";
+import Link from "next/link";
 
 interface BookCardProps {
+  href: string;
   title: string;
   author: string;
   cover?: string;
-  /** While hidden, the viewer is flying a copy of this card. */
-  hidden?: boolean;
-  onClick: (el: HTMLElement) => void;
 }
 
-export default function BookCard({
-  title,
-  author,
-  cover,
-  hidden = false,
-  onClick,
-}: BookCardProps) {
+export default function BookCard({ href, title, author, cover }: BookCardProps) {
   return (
-    <button
-      onClick={(e) => onClick(e.currentTarget)}
-      className={`group relative aspect-[2/3] w-full overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105 ${
-        hidden ? "invisible" : ""
-      }`}
+    <Link
+      href={href}
+      className="group relative block aspect-[2/3] w-full overflow-hidden rounded-lg text-left transition-all duration-300 hover:-translate-y-3 hover:scale-105"
     >
       {/* Book cover */}
       <div
@@ -41,6 +31,6 @@ export default function BookCard({
         <h3 className="line-clamp-3 text-sm leading-snug font-semibold sm:text-lg">{title}</h3>
         <p className="mt-1 truncate text-xs text-white/70 sm:text-sm">{author}</p>
       </div>
-    </button>
+    </Link>
   );
 }

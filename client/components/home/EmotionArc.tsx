@@ -33,6 +33,11 @@ interface EmotionArcProps {
   /** Let the reader show and hide lines from the legend. */
   toggleable?: boolean;
   initiallyHidden?: string[];
+  /**
+   * Fill the parent's height instead of taking a width-based one, so the chart
+   * can shrink to fit a page that doesn't scroll. The parent needs a set height.
+   */
+  fill?: boolean;
 }
 
 const ILLUSTRATIVE: ArcSeries[] = [
@@ -105,14 +110,29 @@ export default function EmotionArc({
   scale = "fixed",
   toggleable = false,
   initiallyHidden = [],
+  fill = false,
 }: EmotionArcProps) {
   const ref = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [drawn, setDrawn] = useState(false);
   const [hidden, setHidden] = useState(() => new Set(initiallyHidden));
   const [hover, setHover] = useState<number | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(DEFAULT_W);
-  const H = heightFor(W);
+  const [room, setRoom] = useState<number | null>(null);
+  const H = fill && room !== null ? Math.round(Math.min(Math.max(110, room), W * 0.75)) : heightFor(W);
+
+  // In fill mode the plot area gets whatever height its parent leaves it.
+  useEffect(() => {
+    const plot = plotRef.current;
+    if (!fill || !plot) return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.floor(entry.contentRect.height);
+      setRoom((prev) => (prev === next ? prev : next));
+    });
+    observer.observe(plot);
+    return () => observer.disconnect();
+  }, [fill]);
 
   // Match the drawing to the rendered width. ResizeObserver fires once on
   // observe, so this also sets the first measurement.
@@ -185,7 +205,7 @@ export default function EmotionArc({
   return (
     <div
       ref={ref}
-      className="rounded-2xl border border-stone-200 bg-stone-50/70 p-3 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:rounded-3xl sm:p-6"
+      className={`${fill ? "flex h-full flex-col " : ""}rounded-2xl border border-stone-200 bg-stone-50/70 p-3 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:rounded-3xl ${fill ? "sm:p-4" : "sm:p-6"}`}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-serif text-lg text-[#113E00]">{title}</span>
@@ -196,7 +216,10 @@ export default function EmotionArc({
         )}
       </div>
 
-      <div className="relative">
+      <div
+        ref={plotRef}
+        className={fill ? "relative flex min-h-0 flex-1 items-center" : "relative"}
+      >
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
