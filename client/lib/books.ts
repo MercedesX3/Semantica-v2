@@ -46,7 +46,7 @@ export const BOOKS: ShelfBook[] = [
     title: "Pride and Prejudice",
     author: "Jane Austen",
     cover: "/covers/PrideAndPrejudice.jpeg",
-    bookId: "pride-and-prejudice",
+    bookId: "pride-and-prejudice-0014dcd3",
     summary: DUMMY_SUMMARY,
   },
   {
@@ -54,7 +54,7 @@ export const BOOKS: ShelfBook[] = [
     title: "The Great Gatsby",
     author: "F. Scott Fitzgerald",
     cover: "/covers/TheGreatGatsby.jpg",
-    bookId: "the-great-gatsby",
+    bookId: "gatsby-1925",
     summary: DUMMY_SUMMARY,
   },
 ];
