@@ -25,10 +25,10 @@ import { CARD, FRAME } from "@/components/PageShell";
  */
 
 const primaryButton =
-  "inline-flex items-center gap-2 rounded-[40px] font-[family-name:var(--font-inter)] bg-linear-80 from-stone-500 to-yellow-800 px-8 py-2.5 text-xl font-semibold text-stone-50 shadow-[0px_4px_4px_0px_rgba(142,142,142,0.25)] outline-2 -outline-offset-2 outline-stone-400 transition-all duration-300 ease-out hover:drop-shadow-2xl";
+  "inline-flex items-center gap-2 rounded-[40px] font-[family-name:var(--font-inter)] bg-linear-80 from-stone-500 to-yellow-800 whitespace-nowrap px-6 py-2.5 text-lg font-semibold text-stone-50 sm:px-8 sm:text-xl shadow-[0px_4px_4px_0px_rgba(142,142,142,0.25)] outline-2 -outline-offset-2 outline-stone-400 transition-all duration-300 ease-out hover:drop-shadow-2xl";
 
 const secondaryButton =
-  "inline-flex items-center gap-2 rounded-[40px] font-[family-name:var(--font-inter)] bg-white px-8 py-2.5 text-xl font-semibold text-stone-500 shadow-[0px_4px_4px_0px_rgba(142,142,142,0.25)] outline-4 -outline-offset-4 outline-stone-400 transition-all duration-300 ease-out hover:drop-shadow-2xl";
+  "inline-flex items-center gap-2 rounded-[40px] font-[family-name:var(--font-inter)] bg-white whitespace-nowrap px-6 py-2.5 text-lg font-semibold text-stone-500 sm:px-8 sm:text-xl shadow-[0px_4px_4px_0px_rgba(142,142,142,0.25)] outline-4 -outline-offset-4 outline-stone-400 transition-all duration-300 ease-out hover:drop-shadow-2xl";
 
 const eyebrow =
   "text-xs font-semibold uppercase tracking-[0.22em] text-[#4D8937]";
@@ -212,7 +212,7 @@ export default function Home() {
               {FEATURES.map(({ icon: Icon, title, body }) => (
                 <article
                   key={title}
-                  className="group rounded-3xl border border-stone-200 p-7 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0px_12px_32px_0px_rgba(142,142,142,0.25)]"
+                  className="group rounded-3xl border border-stone-200 p-6 sm:p-7 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0px_12px_32px_0px_rgba(142,142,142,0.25)]"
                 >
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-80 from-stone-500 to-yellow-800">
                     <Icon className="h-6 w-6 text-stone-50" />
@@ -243,7 +243,7 @@ export default function Home() {
             </h2>
 
             <div className="mt-12 grid gap-6 lg:grid-cols-2">
-              <article className="flex flex-col rounded-3xl border border-stone-200 bg-white p-8">
+              <article className="flex flex-col rounded-3xl border border-stone-200 bg-white p-6 sm:p-8">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4D8937]/10">
                   <Library className="h-6 w-6 text-[#4D8937]" />
                 </span>
@@ -276,7 +276,7 @@ export default function Home() {
                 </div>
               </article>
 
-              <article className="flex flex-col rounded-3xl border border-stone-200 bg-white p-8">
+              <article className="flex flex-col rounded-3xl border border-stone-200 bg-white p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4D8937]/10">
                     <Upload className="h-6 w-6 text-[#4D8937]" />

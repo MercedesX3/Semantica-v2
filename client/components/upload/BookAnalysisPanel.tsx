@@ -90,7 +90,7 @@ function saveResults(
 }
 
 const saveButton =
-  "inline-flex items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors duration-300 hover:border-[#4D8937] hover:bg-[#4D8937]/10 hover:text-[#3a6b2b]";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors duration-300 hover:border-[#4D8937] hover:bg-[#4D8937]/10 hover:text-[#3a6b2b]";
 
 export default function BookAnalysisPanel({
   state,
@@ -149,12 +149,12 @@ export default function BookAnalysisPanel({
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-stone-300 bg-white p-4 sm:p-5">
+    <div className="mt-6 rounded-lg border border-stone-300 bg-white p-3 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-medium text-stone-900">
           Emotional breakdown · {state.results.length} sections
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => saveResults(state.results, fileName, "json")}
