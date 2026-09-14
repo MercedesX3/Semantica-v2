@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import PageShell, { PageTitle } from "@/components/PageShell";
 import BookAnalysisPanel from "@/components/upload/BookAnalysisPanel";
+import AnalysisSaveStatus from "@/components/upload/AnalysisSaveStatus";
 import { useBookAnalysis } from "@/hooks/useBookAnalysis";
 import { FileText, Loader2, Check, Info } from "lucide-react";
 
@@ -70,14 +71,15 @@ export default function UploadPage() {
                 Privacy & Copyright
               </h3>
               <p className="text-sm text-stone-700 leading-relaxed">
-                All PDF processing occurs locally in your browser. Your files
-                are never uploaded to our servers or stored anywhere. This
+                All PDF processing occurs locally in your browser. Your PDF is
+                never uploaded or stored. When the analysis finishes, only the
+                title and the emotion scores are saved to Semantica. This
                 means:
               </p>
               <ul className="text-sm text-stone-700 mt-3 space-y-1 list-disc list-inside">
                 <li>Complete privacy - your PDFs never leave your device</li>
                 <li>Full compliance with copyright laws</li>
-                <li>No data collection or tracking</li>
+                <li>No text from your book is ever sent or stored</li>
                 <li>All processing is instantaneous and secure</li>
               </ul>
               <button
@@ -183,6 +185,13 @@ export default function UploadPage() {
           state={analysis}
           fileName={file?.name ?? "book.pdf"}
         />
+
+        {analysis.status === "complete" && (
+          <AnalysisSaveStatus
+            results={analysis.results}
+            fileName={file?.name ?? "book.pdf"}
+          />
+        )}
       </div>
     </PageShell>
   );

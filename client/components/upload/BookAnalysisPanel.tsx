@@ -3,7 +3,11 @@
 import { AlertCircle, ChevronDown, Download, Loader2 } from "lucide-react";
 import EmotionArc from "@/components/home/EmotionArc";
 import type { BookAnalysisState } from "@/hooks/useBookAnalysis";
-import { EMOTIONS, type ChapterEmotions, type Emotion } from "@/workers/bookML.types";
+import {
+  EMOTIONS,
+  type ChapterEmotions,
+  type Emotion,
+} from "@/workers/bookML.types";
 
 const STAGE_LABEL = {
   EXTRACTING_TEXT: "Extracting text",
@@ -23,7 +27,9 @@ const EMOTION_COLOR: Record<Emotion, string> = {
 const capitalize = (word: string) => word[0].toUpperCase() + word.slice(1);
 
 const dominant = (row: ChapterEmotions) =>
-  EMOTIONS.filter((e) => e !== "neutral").reduce((best, e) => (row[e] > row[best] ? e : best));
+  EMOTIONS.filter((e) => e !== "neutral").reduce((best, e) =>
+    row[e] > row[best] ? e : best,
+  );
 
 function download(filename: string, contents: string, type: string) {
   const url = URL.createObjectURL(new Blob([contents], { type }));
@@ -36,7 +42,11 @@ function download(filename: string, contents: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-function saveResults(results: ChapterEmotions[], fileName: string, format: "json" | "csv") {
+function saveResults(
+  results: ChapterEmotions[],
+  fileName: string,
+  format: "json" | "csv",
+) {
   const base = `${fileName.replace(/\.pdf$/i, "")}-emotions`;
 
   if (format === "json") {
@@ -46,17 +56,33 @@ function saveResults(results: ChapterEmotions[], fileName: string, format: "json
       emotions: EMOTIONS,
       sections: results,
     };
-    download(`${base}.json`, JSON.stringify(payload, null, 2), "application/json");
+    download(
+      `${base}.json`,
+      JSON.stringify(payload, null, 2),
+      "application/json",
+    );
     return;
   }
 
-  const header = ["chapterIndex", "title", "wordCount", "dominant", ...EMOTIONS];
+  const header = [
+    "chapterIndex",
+    "title",
+    "wordCount",
+    "dominant",
+    ...EMOTIONS,
+  ];
   const escape = (value: string | number) => {
     const text = String(value);
     return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   const rows = results.map((row) =>
-    [row.chapterIndex, row.title, row.wordCount, dominant(row), ...EMOTIONS.map((e) => row[e])]
+    [
+      row.chapterIndex,
+      row.title,
+      row.wordCount,
+      dominant(row),
+      ...EMOTIONS.map((e) => row[e]),
+    ]
       .map(escape)
       .join(","),
   );
@@ -77,7 +103,10 @@ export default function BookAnalysisPanel({
 
   if (state.status === "running") {
     return (
-      <div className="mt-6 rounded-lg border border-stone-300 bg-stone-50 p-4" aria-live="polite">
+      <div
+        className="mt-6 rounded-lg border border-stone-300 bg-stone-50 p-4"
+        aria-live="polite"
+      >
         <div className="flex items-center gap-2 text-stone-700">
           <Loader2 className="h-4 w-4 animate-spin text-[#4D8937]" />
           <span className="font-medium">{state.message}</span>
@@ -98,6 +127,7 @@ export default function BookAnalysisPanel({
         )}
         <p className="mt-3 text-xs text-stone-400">
           Everything runs in your browser — the PDF never leaves your device.
+          When it finishes, the emotion scores are saved to Semantica.
         </p>
       </div>
     );
@@ -105,7 +135,10 @@ export default function BookAnalysisPanel({
 
   if (state.status === "error") {
     return (
-      <div className="mt-6 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
+      <div
+        className="mt-6 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800"
+        role="alert"
+      >
         <AlertCircle className="mt-0.5 h-5 w-5 flex-none" />
         <div>
           <p className="font-medium">Analysis failed</p>
@@ -180,7 +213,10 @@ export default function BookAnalysisPanel({
                     <div
                       key={e}
                       title={`${e}: ${(row[e] * 100).toFixed(1)}%`}
-                      style={{ width: `${(row[e] / total) * 100}%`, background: EMOTION_COLOR[e] }}
+                      style={{
+                        width: `${(row[e] / total) * 100}%`,
+                        background: EMOTION_COLOR[e],
+                      }}
                     />
                   ))}
                 </div>
