@@ -106,7 +106,18 @@ export const toApiChapter = (row: ChapterEmotions): ApiChapter => ({
   emotions: Object.fromEntries(EMOTIONS.map((e) => [e, row[e]])),
 });
 
-/** A readable id with a random suffix, so two uploads of one title don't overwrite each other. */
+/**
+ * A stable id for a book, derived from its title alone.
+ *
+ * Deterministic on purpose: uploading the same book again yields the same id, so
+ * the save replaces that book's record instead of adding another copy. This used
+ * to append a random suffix, which is how the table ended up with four copies of
+ * Frankenstein — and why the shelf's clean ids in lib/books.ts never resolved.
+ *
+ * The author is deliberately not part of it: it defaults to "Unknown" and is
+ * corrected afterwards, so including it would change the id out from under a
+ * record that was already saved.
+ */
 export function createBookId(title: string) {
   const slug = title
     .toLowerCase()
@@ -114,6 +125,13 @@ export function createBookId(title: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
-  const suffix = crypto.randomUUID().slice(0, 8);
-  return slug ? `${slug}-${suffix}` : suffix;
+  return slug || "untitled";
+}
+
+/** Removes a book and all its chapters. Used when a retitled book changes id. */
+export async function deleteAnalysis(bookId: string): Promise<void> {
+  const res = await fetch(apiUrl(`/analysis/${encodeURIComponent(bookId)}`), {
+    method: "DELETE",
+  });
+  await readJson(res);
 }

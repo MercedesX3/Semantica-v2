@@ -1,3 +1,5 @@
+import type { SoundArchetype } from "@/lib/bookMetadata";
+
 export interface ShelfBook {
   /** The URL segment: /explore/[slug]. */
   slug: string;
@@ -5,11 +7,23 @@ export interface ShelfBook {
   author: string;
   cover?: string;
   /**
-   * The id this book's analysis is saved under in the API. Uploads save with a
-   * random suffix (see createBookId), so paste the real id here once it's saved.
+   * The id this book's analysis is saved under in the API. It is the title
+   * slugified — see createBookId — so an upload of this title lands on exactly
+   * this record and replaces it rather than adding a copy.
    */
   bookId: string;
   summary: string;
+  /**
+   * Overrides the archetype the lookup works out for itself.
+   *
+   * resolveSoundArchetype reads a book's era before its genre, which is right
+   * for Kafka — libraries file him under "Fantasy fiction" and a sci-fi score
+   * would be wrong — but it sweeps every pre-1960 book into `historical`. A
+   * Wells invasion novel and a Buchan chase thriller deserve their own sound,
+   * and that is a judgement about the book, not something a publication date
+   * can be asked to make. Set it here when the derived answer is wrong.
+   */
+  soundArchetype?: SoundArchetype;
 }
 
 // Placeholder copy until the real summaries are written.
@@ -46,7 +60,7 @@ export const BOOKS: ShelfBook[] = [
     title: "Pride and Prejudice",
     author: "Jane Austen",
     cover: "/covers/PrideAndPrejudice.jpeg",
-    bookId: "pride-and-prejudice-0014dcd3",
+    bookId: "pride-and-prejudice",
     summary: DUMMY_SUMMARY,
   },
   {
@@ -54,7 +68,27 @@ export const BOOKS: ShelfBook[] = [
     title: "The Great Gatsby",
     author: "F. Scott Fitzgerald",
     cover: "/covers/TheGreatGatsby.jpg",
-    bookId: "gatsby-1925",
+    bookId: "the-great-gatsby",
+    summary: DUMMY_SUMMARY,
+    soundArchetype: "contemporary",
+  },
+  {
+    slug: "the-thirty-nine-steps",
+    title: "The Thirty-Nine Steps",
+    author: "John Buchan",
+    cover: "/covers/TheThirtyNineSteps.jpg",
+    bookId: "the-thirty-nine-steps",
+    summary: DUMMY_SUMMARY,
+    soundArchetype: "thriller",
+  },
+  {
+    slug: "the-war-of-the-worlds",
+    title: "The War of the Worlds",
+    author: "H. G. Wells",
+    // The file is named TheWorldOfTheWorlds; the book is The War of the Worlds.
+    cover: "/covers/TheWorldOfTheWorlds.jpeg",
+    bookId: "the-war-of-the-worlds",
+    soundArchetype: "scifi",
     summary: DUMMY_SUMMARY,
   },
 ];

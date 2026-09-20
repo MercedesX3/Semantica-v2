@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Loader2, Music, Pause, Play } from "lucide-react";
 import { NarrativeScoreEngine } from "@/app/audio/NarrativeScoreEngine";
+import { StemAudioEngine } from "@/app/audio/StemAudioEngine";
 import { STEM_KEYS, voiceLevels, type StemKey } from "@/app/audio/score";
+import type { SoundArchetype } from "@/lib/bookMetadata";
 import { EMOTION_COLOR } from "@/components/upload/BookAnalysisPanel";
 import { dominantEmotion, sectionHighlights } from "@/lib/soundtrack";
 import type { ChapterEmotions } from "@/workers/bookML.types";
@@ -33,17 +35,24 @@ const ZERO_LEVELS: Record<StemKey, number> = {
   tension: 0,
 };
 
+/** Either engine drives the meters and the crossfade the same way. */
+type Engine = StemAudioEngine | NarrativeScoreEngine;
+
 export default function BookSoundtrack({
   rows,
   active,
   onSelect,
+  archetype,
 }: {
   rows: ChapterEmotions[];
   /** Index into `rows`, matching the chart's selection. */
   active: number;
   onSelect: (index: number) => void;
+  /** Which recorded stem set to play; null falls back to the generated score. */
+  archetype: SoundArchetype | null;
 }) {
-  const engineRef = useRef<NarrativeScoreEngine | null>(null);
+  const engineRef = useRef<Engine | null>(null);
+  const [source, setSource] = useState<"stems" | "generated" | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,22 +102,52 @@ export default function BookSoundtrack({
     }
 
     setError(null);
-    const engine = (engineRef.current ??= new NarrativeScoreEngine());
+    setLoading(true);
 
     try {
-      // Built here inside the click, so the browser counts it as a gesture and
-      // lets the AudioContext start.
-      setLoading(true);
-      await engine.init();
+      // Built inside the click so the browser counts it as a gesture and lets
+      // the AudioContext start.
+      let engine = engineRef.current;
+      let kind = source;
+
+      if (!engine) {
+        // Recorded stems when this book has an archetype and the CDN has it;
+        // the generated score whenever that cannot be had, so a missing or
+        // unreachable stem set never leaves the reader in silence.
+        if (archetype) {
+          const stems = new StemAudioEngine();
+          try {
+            await stems.init();
+            await stems.loadArchetype(archetype);
+            engine = stems;
+            kind = "stems";
+          } catch (err) {
+            console.warn(
+              `[soundtrack] no "${archetype}" stems, using the generated score:`,
+              err,
+            );
+            await stems.dispose();
+          }
+        }
+
+        if (!engine) {
+          const generated = new NarrativeScoreEngine();
+          await generated.init();
+          engine = generated;
+          kind = "generated";
+        }
+
+        engineRef.current = engine;
+        setSource(kind);
+      }
+
+      engine.start(row);
+      setPlaying(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The score wouldn't start.");
-      return;
     } finally {
       setLoading(false);
     }
-
-    engine.start(row);
-    setPlaying(true);
   };
 
   if (!row) return null;
@@ -164,7 +203,7 @@ export default function BookSoundtrack({
             {loading
               ? "Tuning the score..."
               : playing
-                ? `Crossfading over ${FADE}s`
+                ? `${source === "stems" ? `${archetype} stems` : "Generated score"} · crossfading over ${FADE}s`
                 : "Preview of the mix"}
           </p>
         </div>

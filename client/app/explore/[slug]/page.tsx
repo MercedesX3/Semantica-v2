@@ -12,28 +12,11 @@ export default async function BookPage({ params }: PageProps<"/explore/[slug]">)
   const book = findBook(slug);
   if (!book) notFound();
 
+  // The whole layout is client-side: the metadata lookup, the analysis and the
+  // selected section are shared across both columns.
   return (
     <PageShell fit backHref="/explore" backLabel="Explore">
-      <BookExperience bookId={book.bookId}>
-        {/* Left: cover, then the summary */}
-        <>
-          <div
-            className="aspect-[2/3] w-44 flex-none overflow-hidden rounded-lg bg-cover bg-center shadow-[0px_12px_30px_0px_rgba(0,0,0,0.25)] sm:w-52 lg:h-[min(32vh,26rem)] lg:w-auto lg:self-start"
-            style={{
-              backgroundImage: book.cover
-                ? `url(${book.cover})`
-                : "linear-gradient(135deg, #3b2f63, #171329)",
-            }}
-            role="img"
-            aria-label={`Cover of ${book.title}`}
-          />
-          <div className="min-h-0 overflow-hidden">
-            <h1 style={{ fontSize: "clamp(28px, 3vw, 40px)", lineHeight: 1.15 }}>{book.title}</h1>
-            <p className="mt-1 text-stone-500">{book.author}</p>
-            <p className="mt-4 text-[15px] leading-relaxed text-stone-700">{book.summary}</p>
-          </div>
-        </>
-      </BookExperience>
+      <BookExperience book={book} />
     </PageShell>
   );
 }

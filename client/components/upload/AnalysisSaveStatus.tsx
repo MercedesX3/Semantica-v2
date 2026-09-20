@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, Check, Loader2, Pencil, RotateCw } from "lucide-react";
-import { createBookId, saveAnalysis, toApiChapter } from "@/lib/api";
+import { createBookId, deleteAnalysis, saveAnalysis, toApiChapter } from "@/lib/api";
 import type { ChapterEmotions } from "@/workers/bookML.types";
 
 type SaveState =
@@ -36,8 +36,12 @@ const secondary =
 
 /**
  * Saves a finished upload analysis as soon as it arrives, then shows where it
- * lives. The book id is fixed for this analysis, so correcting the title or
- * author re-saves over the same record instead of creating a second one.
+ * lives.
+ *
+ * The id comes from the title, so re-uploading a book replaces its record
+ * rather than adding a copy. Correcting the title therefore moves the book to a
+ * new id, and the record the old title left behind is deleted — otherwise the
+ * correction would leave the duplicate it was meant to avoid.
  */
 export default function AnalysisSaveStatus({
   results,
@@ -50,19 +54,38 @@ export default function AnalysisSaveStatus({
     title: titleFromFileName(fileName),
     author: "Unknown",
   }));
-  const [bookId] = useState(() => createBookId(details.title));
   const [save, setSave] = useState<SaveState>({ status: "saving" });
   const [editing, setEditing] = useState<Details | null>(null);
   const savedFor = useRef<ChapterEmotions[] | null>(null);
+  /** The id this analysis is currently stored under, once a save has landed. */
+  const savedId = useRef<string | null>(null);
+
+  const bookId = createBookId(details.title);
 
   const persist = async (next: Details) => {
+    const nextId = createBookId(next.title);
+    const previousId = savedId.current;
+
     try {
       await saveAnalysis({
-        bookId,
+        bookId: nextId,
         title: next.title,
         author: next.author,
         chapters: results.map(toApiChapter),
       });
+
+      // The book has moved to a new id, so clear the one it used to occupy.
+      // A failure here leaves a stray record but the save itself stands, so it
+      // must not turn a successful save into an error.
+      if (previousId && previousId !== nextId) {
+        try {
+          await deleteAnalysis(previousId);
+        } catch {
+          // Nothing the reader can do about it; the new record is correct.
+        }
+      }
+
+      savedId.current = nextId;
       setDetails(next);
       setSave({ status: "saved" });
     } catch (err) {
