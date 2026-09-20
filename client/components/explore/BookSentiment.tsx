@@ -1,10 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertCircle, Loader2 } from "lucide-react";
 import EmotionArc from "@/components/home/EmotionArc";
 import { EMOTION_COLOR, capitalize } from "@/components/upload/BookAnalysisPanel";
-import { useStoredAnalysis } from "@/hooks/useStoredAnalysis";
+import type { BookAnalysisState } from "@/hooks/useBookAnalysis";
 import { EMOTIONS, type ChapterEmotions } from "@/workers/bookML.types";
 
 /** Each emotion's share of the whole book, weighted by section length. */
@@ -21,9 +22,30 @@ function bookAverages(rows: ChapterEmotions[]) {
 const panel =
   "flex h-full min-h-0 flex-col rounded-2xl border border-stone-200 bg-white/80 p-4 backdrop-blur-sm sm:rounded-3xl sm:p-6";
 
-export default function BookSentiment({ bookId }: { bookId: string }) {
-  const { state } = useStoredAnalysis(bookId);
+/*
+ * The arc shares the panel with the soundtrack console, so it needs a floor:
+ * in fill mode it would otherwise give up all its height to the console and
+ * draw the lines on top of its own legend.
+ */
+const arcBox = "min-h-[260px] flex-1 lg:min-h-[300px]";
 
+/*
+ * The analysis is fetched by BookExperience and handed down, so the arc and the
+ * soundtrack read from one copy of it and share a selected section.
+ */
+export default function BookSentiment({
+  state,
+  active,
+  onSelect,
+  footer,
+}: {
+  state: BookAnalysisState;
+  /** Index into the results, or null before anything is picked. */
+  active?: number | null;
+  onSelect?: (index: number) => void;
+  /** Rendered under the arc once there are results: the soundtrack console. */
+  footer?: ReactNode;
+}) {
   if (state.status === "idle" || state.status === "running") {
     return (
       <div className={`${panel} items-center justify-center gap-2 text-stone-600`} aria-live="polite">
@@ -62,7 +84,7 @@ export default function BookSentiment({ bookId }: { bookId: string }) {
   const peak = top?.value || 1;
 
   return (
-    <div className={`${panel} gap-3`}>
+    <div className={`${panel} gap-3 lg:overflow-y-auto`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 style={{ fontSize: "clamp(20px, 2vw, 24px)", lineHeight: 1.2 }}>Sentiment analysis</h2>
         <span className="text-xs uppercase tracking-[0.18em] text-stone-400">
@@ -97,7 +119,7 @@ export default function BookSentiment({ bookId }: { bookId: string }) {
         ))}
       </ul>
 
-      <div className="min-h-[280px] flex-1 lg:min-h-0">
+      <div className={arcBox}>
         <EmotionArc
           fill
           title="Emotional arc"
@@ -111,8 +133,12 @@ export default function BookSentiment({ bookId }: { bookId: string }) {
           scale="auto"
           toggleable
           initiallyHidden={["Neutral"]}
+          selected={active ?? null}
+          onSelect={onSelect}
         />
       </div>
+
+      {footer}
     </div>
   );
 }

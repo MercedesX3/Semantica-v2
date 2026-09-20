@@ -18,7 +18,14 @@ export type ChapterEmotions = {
 
 export type AnalysisStage = "EXTRACTING_TEXT" | "INFERENCE";
 
-export type BookMLRequest = { arrayBuffer: ArrayBuffer };
+export type BookMLRequest = {
+  arrayBuffer: ArrayBuffer;
+  /**
+   * Optional override for max passages sampled per section.
+   * Default is 40 (400 total inferences across 10 sections).
+   */
+  samplesPerSection?: number;
+};
 
 export type BookMLMessage =
   | { type: "STATUS"; message: string }

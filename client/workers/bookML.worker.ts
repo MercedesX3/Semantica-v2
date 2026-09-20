@@ -10,13 +10,16 @@ import {
 } from "./bookML.types";
 
 const MODEL_ID = "onnx-community/emotion-english-distilroberta-base-ONNX";
-const PAGES_PER_SECTION = 25;
-const PASSAGE_CHARS = 1200;
-const MIN_PASSAGE_CHARS = 30;
-const BATCH_SIZE = 16;
+const TOTAL_SECTIONS = 10;
+const PASSAGE_CHARS = 450;
+const MIN_PASSAGE_CHARS = 50;
+const DEFAULT_SAMPLES_PER_SECTION = 40;
+
+// Regency and Victorian markers that trigger disproportionate disgust/anger
+const REGENCY_FALSE_POSITIVES =
+  /\b(tolerable|handsome|disagreeable|folly|mortified|civility|censure|contempt|impertinent|insufferable|displeasure|haughty|condescension)\b/i;
 
 (globalThis as { pdfjsWorker?: unknown }).pdfjsWorker = pdfjsWorker;
-
 env.allowLocalModels = false;
 
 const ctx = self as unknown as {
@@ -26,35 +29,73 @@ const ctx = self as unknown as {
 
 const post = (message: BookMLMessage) => ctx.postMessage(message);
 
-async function pickDevice(): Promise<"webgpu" | "wasm"> {
-  const gpu = (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu;
-  if (!gpu) return "wasm";
-  try {
-    return (await gpu.requestAdapter()) ? "webgpu" : "wasm";
-  } catch {
-    return "wasm";
+/**
+ * Checks for hardware acceleration capability and selects appropriate batch size.
+ */
+async function pickDevice(): Promise<{
+  device: "webgpu" | "wasm";
+  batchSize: number;
+}> {
+  const gpu = (
+    navigator as Navigator & {
+      gpu?: { requestAdapter: () => Promise<unknown> };
+    }
+  ).gpu;
+
+  if (gpu) {
+    try {
+      const adapter = await gpu.requestAdapter();
+      if (adapter) return { device: "webgpu", batchSize: 32 };
+    } catch {
+      // Fall through to wasm fallback
+    }
   }
+  return { device: "wasm", batchSize: 16 };
 }
 
-function toPassages(text: string): string[] {
-  const sentences = text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? [];
-  const passages: string[] = [];
-  let current = "";
+/**
+ * Splits text cleanly at punctuation bounds instead of raw character slices.
+ * Prevents fragmented context from skewing emotion classifications.
+ */
+function toSentences(text: string): string[] {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length < MIN_PASSAGE_CHARS) return [];
 
-  for (const sentence of sentences) {
-    if (current && current.length + sentence.length > PASSAGE_CHARS) {
-      passages.push(current.trim());
-      current = "";
+  const rawSentences = clean.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [];
+  const validSentences: string[] = [];
+  let buffer = "";
+
+  for (const s of rawSentences) {
+    const candidate = (buffer + " " + s).trim();
+    if (candidate.length < PASSAGE_CHARS) {
+      buffer = candidate;
+    } else {
+      if (buffer.length >= MIN_PASSAGE_CHARS) validSentences.push(buffer);
+      buffer = s.trim();
     }
-    current += sentence;
   }
-  if (current.trim()) passages.push(current.trim());
+  if (buffer.length >= MIN_PASSAGE_CHARS) validSentences.push(buffer);
 
-  return passages.filter((p) => p.length > MIN_PASSAGE_CHARS);
+  return validSentences;
+}
+
+/**
+ * Evenly downsamples across the section timeline to preserve macro arcs
+ * while drastically reducing redundant transformer operations.
+ */
+function samplePassages(passages: string[], maxSamples: number): string[] {
+  if (passages.length <= maxSamples) return passages;
+  const step = passages.length / maxSamples;
+  const sampled: string[] = [];
+  for (let i = 0; i < maxSamples; i++) {
+    sampled.push(passages[Math.floor(i * step)]);
+  }
+  return sampled;
 }
 
 ctx.onmessage = async (event) => {
-  const { arrayBuffer } = event.data;
+  const { arrayBuffer, samplesPerSection = DEFAULT_SAMPLES_PER_SECTION } =
+    event.data;
 
   try {
     post({ type: "STATUS", message: "Loading PDF..." });
@@ -63,6 +104,7 @@ ctx.onmessage = async (event) => {
       data: arrayBuffer,
       verbosity: pdfjsLib.VerbosityLevel.ERRORS,
     }).promise;
+
     const numPages = pdfDoc.numPages;
     const pagesText: string[] = [];
 
@@ -70,11 +112,13 @@ ctx.onmessage = async (event) => {
       const page = await pdfDoc.getPage(i);
       const textContent = await page.getTextContent();
       pagesText.push(
-        textContent.items.map((item) => ("str" in item ? item.str : "")).join(" "),
+        textContent.items
+          .map((item) => ("str" in item ? item.str : ""))
+          .join(" "),
       );
       page.cleanup();
 
-      if (i % 5 === 0 || i === numPages) {
+      if (i % 10 === 0 || i === numPages) {
         post({
           type: "PROGRESS",
           stage: "EXTRACTING_TEXT",
@@ -84,26 +128,34 @@ ctx.onmessage = async (event) => {
     }
     await pdfDoc.destroy();
 
-    const sections: { title: string; passages: string[]; wordCount: number }[] = [];
-    for (let i = 0; i < pagesText.length; i += PAGES_PER_SECTION) {
-      const text = pagesText.slice(i, i + PAGES_PER_SECTION).join(" ");
+    const fullText = pagesText.join(" ");
+    const chunkSize = Math.ceil(fullText.length / TOTAL_SECTIONS);
+
+    const sections: { title: string; passages: string[]; wordCount: number }[] =
+      [];
+    for (let s = 0; s < TOTAL_SECTIONS; s++) {
+      const slice = fullText.slice(s * chunkSize, (s + 1) * chunkSize);
+      const rawPassages = toSentences(slice);
+      const passages = samplePassages(rawPassages, samplesPerSection);
+      const wordCount = slice.split(/\s+/).filter(Boolean).length;
+
       sections.push({
-        title: `Section ${sections.length + 1}`,
-        passages: toPassages(text),
-        wordCount: text.split(/\s+/).filter(Boolean).length,
+        title: `Section ${s + 1}`,
+        passages,
+        wordCount,
       });
     }
 
     const totalPassages = sections.reduce((n, s) => n + s.passages.length, 0);
     if (totalPassages === 0) {
       throw new Error(
-        "No readable text found in this PDF. It may be a scanned book without a text layer.",
+        "No readable text found in this PDF. It may be scanned or lack an embedded text layer.",
       );
     }
 
-    post({ type: "STATUS", message: "Initializing model (may take time on first run)..." });
+    post({ type: "STATUS", message: "Initializing model..." });
 
-    const device = await pickDevice();
+    const { device, batchSize } = await pickDevice();
     const classifier = await pipeline("text-classification", MODEL_ID, {
       device,
       dtype: "q8",
@@ -118,18 +170,34 @@ ctx.onmessage = async (event) => {
       const { title, passages, wordCount } = sections[s];
       if (passages.length === 0) continue;
 
-      const totals = Object.fromEntries(EMOTIONS.map((e) => [e, 0])) as Record<Emotion, number>;
+      const rawTotals = Object.fromEntries(
+        EMOTIONS.map((e) => [e, 0]),
+      ) as Record<Emotion, number>;
 
-      for (let i = 0; i < passages.length; i += BATCH_SIZE) {
-        const batch = passages.slice(i, i + BATCH_SIZE);
-        const outputs = (await classifier(batch, { top_k: null })) as unknown as {
-          label: string;
-          score: number;
-        }[][];
+      for (let i = 0; i < passages.length; i += batchSize) {
+        const batch = passages.slice(i, i + batchSize);
+        const outputs = (await classifier(batch, {
+          top_k: null,
+        })) as unknown as { label: string; score: number }[][];
 
-        for (const scores of outputs) {
+        for (let b = 0; b < outputs.length; b++) {
+          const scores = outputs[b];
+          const textSnippet = batch[b];
+          const hasRegencyStyle = REGENCY_FALSE_POSITIVES.test(textSnippet);
+
           for (const { label, score } of scores) {
-            if (label in totals) totals[label as Emotion] += score;
+            let adjustedScore = score;
+
+            // Scale down modern outrage biases provoked by 19th-century propriety
+            if (hasRegencyStyle) {
+              if (label === "disgust") adjustedScore *= 0.35;
+              if (label === "anger") adjustedScore *= 0.5;
+              if (label === "neutral") adjustedScore *= 1.25;
+            }
+
+            if (label in rawTotals) {
+              rawTotals[label as Emotion] += adjustedScore;
+            }
           }
         }
 
@@ -141,15 +209,30 @@ ctx.onmessage = async (event) => {
         });
       }
 
-      const averaged = Object.fromEntries(
-        EMOTIONS.map((e) => [e, Number((totals[e] / passages.length).toFixed(4))]),
+      // Re-normalize scores across all emotions for this section to sum to 1.0
+      const sumOfAllScores =
+        Object.values(rawTotals).reduce((a, b) => a + b, 0) || 1;
+
+      const normalizedDistribution = Object.fromEntries(
+        EMOTIONS.map((e) => [
+          e,
+          Number((rawTotals[e] / sumOfAllScores).toFixed(4)),
+        ]),
       ) as Record<Emotion, number>;
 
-      finalResults.push({ chapterIndex: s + 1, title, wordCount, ...averaged });
+      finalResults.push({
+        chapterIndex: s + 1,
+        title,
+        wordCount,
+        ...normalizedDistribution,
+      });
     }
 
     post({ type: "COMPLETE", data: finalResults });
   } catch (err) {
-    post({ type: "ERROR", error: err instanceof Error ? err.message : String(err) });
+    post({
+      type: "ERROR",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };

@@ -38,6 +38,12 @@ interface EmotionArcProps {
    * can shrink to fit a page that doesn't scroll. The parent needs a set height.
    */
   fill?: boolean;
+  /**
+   * Make the chart a picker: clicking anywhere on it reports the nearest point.
+   * The marked point stays lit so it reads as the current selection.
+   */
+  onSelect?: (index: number) => void;
+  selected?: number | null;
 }
 
 const ILLUSTRATIVE: ArcSeries[] = [
@@ -111,6 +117,8 @@ export default function EmotionArc({
   toggleable = false,
   initiallyHidden = [],
   fill = false,
+  onSelect,
+  selected = null,
 }: EmotionArcProps) {
   const ref = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -190,16 +198,28 @@ export default function EmotionArc({
       return next;
     });
 
-  const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+  /** The point nearest a pointer position, or null when there's nothing to hit. */
+  const indexAt = (clientX: number) => {
     const svg = svgRef.current;
-    if (!svg || count === 0) return;
+    if (!svg || count === 0) return null;
     const rect = svg.getBoundingClientRect();
-    const vx = ((event.clientX - rect.left) / rect.width) * W;
+    const vx = ((clientX - rect.left) / rect.width) * W;
     const i =
       count <= 1
         ? 0
         : Math.round(((vx - left) / (W - left - PAD.right)) * (count - 1));
-    setHover(Math.max(0, Math.min(count - 1, i)));
+    return Math.max(0, Math.min(count - 1, i));
+  };
+
+  const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const i = indexAt(event.clientX);
+    if (i !== null) setHover(i);
+  };
+
+  const onClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!onSelect) return;
+    const i = indexAt(event.clientX);
+    if (i !== null) onSelect(i);
   };
 
   return (
@@ -223,9 +243,10 @@ export default function EmotionArc({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
-          className="block h-auto w-full touch-pan-y"
+          className={`block h-auto w-full touch-pan-y${onSelect ? " cursor-pointer" : ""}`}
           role="img"
           aria-label={`Line chart of ${series.map((s) => s.name.toLowerCase()).join(", ")} across ${count} ${xLabel.toLowerCase()}s.`}
+          onClick={onClick}
           onPointerMove={onPointerMove}
           onPointerDown={onPointerMove}
           onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
@@ -270,6 +291,31 @@ export default function EmotionArc({
               <text x={x(marker.index) + 6} y={PAD.top + 4} fontSize="11" fill="#78716c">
                 {marker.label}
               </text>
+            </g>
+          )}
+
+          {selected !== null && selected < count && (
+            <g className="transition-[transform] duration-300">
+              <line
+                x1={x(selected)}
+                x2={x(selected)}
+                y1={PAD.top - 6}
+                y2={H - PAD.bottom}
+                stroke="#4D8937"
+                strokeWidth={1.5}
+              />
+              <circle cx={x(selected)} cy={H - PAD.bottom} r={3.5} fill="#4D8937" />
+              {visible.map((s) => (
+                <circle
+                  key={`sel-${s.name}`}
+                  cx={x(selected)}
+                  cy={y(s.values[selected] ?? 0)}
+                  r={4.5}
+                  fill="#fff"
+                  stroke={s.color}
+                  strokeWidth={2.5}
+                />
+              ))}
             </g>
           )}
 
@@ -332,7 +378,8 @@ export default function EmotionArc({
                 y={H - 10}
                 fontSize="11"
                 textAnchor="middle"
-                fill={hover === i ? "#44403c" : "#a8a29e"}
+                fontWeight={selected === i ? 700 : 400}
+                fill={selected === i ? "#4D8937" : hover === i ? "#44403c" : "#a8a29e"}
               >
                 {i + 1}
               </text>
