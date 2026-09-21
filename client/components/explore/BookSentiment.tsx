@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertCircle, Loader2 } from "lucide-react";
 import EmotionArc from "@/components/home/EmotionArc";
@@ -23,11 +22,11 @@ const panel =
   "flex h-full min-h-0 flex-col rounded-2xl border border-stone-200 bg-white/80 p-4 backdrop-blur-sm sm:rounded-3xl sm:p-6";
 
 /*
- * The arc shares the panel with the soundtrack console, so it needs a floor:
- * in fill mode it would otherwise give up all its height to the console and
- * draw the lines on top of its own legend.
+ * The arc has the panel to itself now that the player sits beside it, so it can
+ * take whatever height is left. The floor stops it collapsing onto its own
+ * legend on a short viewport.
  */
-const arcBox = "min-h-[260px] flex-1 lg:min-h-[300px]";
+const arcBox = "min-h-[260px] flex-1 lg:min-h-[240px]";
 
 /*
  * The analysis is fetched by BookExperience and handed down, so the arc and the
@@ -37,14 +36,11 @@ export default function BookSentiment({
   state,
   active,
   onSelect,
-  footer,
 }: {
   state: BookAnalysisState;
   /** Index into the results, or null before anything is picked. */
   active?: number | null;
   onSelect?: (index: number) => void;
-  /** Rendered under the arc once there are results: the soundtrack console. */
-  footer?: ReactNode;
 }) {
   if (state.status === "idle" || state.status === "running") {
     return (
@@ -84,7 +80,7 @@ export default function BookSentiment({
   const peak = top?.value || 1;
 
   return (
-    <div className={`${panel} gap-3 lg:overflow-y-auto`}>
+    <div className={`${panel} gap-3`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 style={{ fontSize: "clamp(20px, 2vw, 24px)", lineHeight: 1.2 }}>Sentiment analysis</h2>
         <span className="text-xs uppercase tracking-[0.18em] text-stone-400">
@@ -137,8 +133,6 @@ export default function BookSentiment({
           onSelect={onSelect}
         />
       </div>
-
-      {footer}
     </div>
   );
 }

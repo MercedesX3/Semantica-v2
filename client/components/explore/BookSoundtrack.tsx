@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Loader2, Music, Pause, Play } from "lucide-react";
+import { AlertCircle, Info, Loader2, Music, Pause, Play, X } from "lucide-react";
 import { NarrativeScoreEngine } from "@/app/audio/NarrativeScoreEngine";
 import { StemAudioEngine } from "@/app/audio/StemAudioEngine";
 import { STEM_KEYS, voiceLevels, type StemKey } from "@/app/audio/score";
@@ -38,6 +38,91 @@ const ZERO_LEVELS: Record<StemKey, number> = {
 /** Either engine drives the meters and the crossfade the same way. */
 type Engine = StemAudioEngine | NarrativeScoreEngine;
 
+const INFO_ID = "soundtrack-info";
+
+/**
+ * What the reader is actually listening to.
+ *
+ * Covers the panel rather than hanging off the button: the page is locked to
+ * the viewport and its ancestors clip, so a popover escaping the card would be
+ * cut off. Filling the card keeps it readable at any height.
+ */
+function SoundtrackInfo({
+  archetype,
+  onClose,
+}: {
+  archetype: SoundArchetype | null;
+  onClose: () => void;
+}) {
+  // Escape closes it, as a reader would expect of anything overlaying a page.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      id={INFO_ID}
+      role="dialog"
+      aria-label="How this soundtrack is made"
+      className="absolute inset-0 z-10 flex flex-col overflow-y-auto rounded-2xl bg-stone-50 p-4 sm:rounded-3xl sm:p-5"
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-serif text-lg text-[#113E00]">How this is made</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="-my-1 self-center rounded-full p-1 text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4D8937]"
+          autoFocus
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <ol className="mt-3 space-y-2.5 text-xs leading-relaxed text-stone-600">
+        <li>
+          <span className="font-medium text-stone-800">A palette per kind of book.</span>{" "}
+          The era and subject pick one of four sets — historical, sci-fi, thriller or
+          contemporary.
+          {archetype && (
+            <>
+              {" "}
+              This book uses{" "}
+              <span className="font-medium text-[#4D8937]">{archetype}</span>.
+            </>
+          )}
+        </li>
+        <li>
+          <span className="font-medium text-stone-800">Four separate recordings.</span>{" "}
+          Each palette is a neutral bed, a joyful layer, a sad one and a tense one,
+          composed by ElevenLabs and streamed from a CDN. They share a key and tempo so
+          they can be played together.
+        </li>
+        <li>
+          <span className="font-medium text-stone-800">Your book moves the faders.</span>{" "}
+          The emotion scores read out of the text set how loud each layer is. A section
+          that scores high on sadness brings that recording forward and pushes the
+          others back — the bars above show the live mix.
+        </li>
+        <li>
+          <span className="font-medium text-stone-800">Sections crossfade.</span> Moving
+          between sections fades over {FADE} seconds rather than cutting, so the score
+          follows the story instead of interrupting it.
+        </li>
+        <li>
+          <span className="font-medium text-stone-800">Nothing is silent.</span> If a
+          palette has not been recorded yet, the music is synthesised in your browser
+          from the same scores instead.
+        </li>
+      </ol>
+    </div>
+  );
+}
+
 export default function BookSoundtrack({
   rows,
   active,
@@ -53,6 +138,7 @@ export default function BookSoundtrack({
 }) {
   const engineRef = useRef<Engine | null>(null);
   const [source, setSource] = useState<"stems" | "generated" | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,13 +243,29 @@ export default function BookSoundtrack({
   const badge = highlights.get(active);
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:rounded-3xl sm:p-5">
+    <section className="relative flex h-full min-h-0 flex-col rounded-2xl border border-stone-200 bg-stone-50/70 p-4 shadow-[0px_4px_24px_0px_rgba(142,142,142,0.18)] sm:rounded-3xl sm:p-5">
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-serif text-lg text-[#113E00]">Soundtrack</span>
-        <span className="text-xs uppercase tracking-[0.18em] text-stone-400">
-          {playing ? "Playing" : "4 voices"}
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs uppercase tracking-[0.18em] text-stone-400">
+            {playing ? "Playing" : "4 voices"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowInfo(true)}
+            aria-expanded={showInfo}
+            aria-controls={INFO_ID}
+            aria-label="How this soundtrack is made"
+            className="-my-1 self-center rounded-full p-1 text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4D8937]"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {showInfo && (
+        <SoundtrackInfo archetype={archetype} onClose={() => setShowInfo(false)} />
+      )}
 
       <div className="mt-3 flex items-center gap-4">
         <button
@@ -217,7 +319,7 @@ export default function BookSoundtrack({
       )}
 
       {/* Live voice levels: what each layer is actually playing at. */}
-      <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+      <ul className="mt-4 space-y-2">
         {STEM_KEYS.map((key) => (
           <li key={key} className="flex items-center gap-2 text-xs">
             <span className="w-14 flex-none text-stone-600">{VOICE_LABEL[key]}</span>
@@ -239,7 +341,7 @@ export default function BookSoundtrack({
       </ul>
 
       {/* The section track, and the accessible way to change section. */}
-      <div className="mt-4">
+      <div className="mt-4 lg:mt-auto lg:pt-4">
         <div className="flex flex-wrap gap-1.5">
           {rows.map((section, i) => {
             const isActive = i === active;

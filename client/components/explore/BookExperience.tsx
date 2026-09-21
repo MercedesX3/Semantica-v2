@@ -41,11 +41,17 @@ export default function BookExperience({ book }: { book: ShelfBook }) {
   const selected = active < rows.length ? active : 0;
 
   return (
-    <div className="grid w-full flex-1 gap-8 lg:min-h-0 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-12">
+    /*
+     * Three columns on a wide screen: the book, its arc, and the player beside
+     * the arc rather than stacked under it. Stacked, the right-hand panel
+     * outgrew the locked page height and had to scroll; side by side both fit.
+     * The book column gives up the width to pay for it.
+     */
+    <div className="grid w-full flex-1 gap-8 lg:min-h-0 lg:grid-cols-[minmax(0,3.5fr)_minmax(0,5.5fr)_minmax(0,4fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 xl:gap-8">
       {/* Left: cover, then the title, facts and summary */}
-      <section className="flex min-h-0 flex-col gap-5">
+      <section className="flex min-h-0 flex-col gap-4">
         <div
-          className="aspect-[2/3] w-44 flex-none overflow-hidden rounded-lg bg-cover bg-center shadow-[0px_12px_30px_0px_rgba(0,0,0,0.25)] sm:w-52 lg:h-[min(32vh,26rem)] lg:w-auto lg:self-start"
+          className="aspect-[2/3] w-40 flex-none overflow-hidden rounded-lg bg-cover bg-center shadow-[0px_12px_30px_0px_rgba(0,0,0,0.25)] sm:w-48 lg:h-[min(24vh,20rem)] lg:w-auto lg:self-start"
           style={{
             backgroundImage: book.cover
               ? `url(${book.cover})`
@@ -55,33 +61,31 @@ export default function BookExperience({ book }: { book: ShelfBook }) {
           aria-label={`Cover of ${book.title}`}
         />
         <div className="min-h-0 overflow-hidden">
-          <h1 style={{ fontSize: "clamp(28px, 3vw, 40px)", lineHeight: 1.15 }}>
+          <h1 style={{ fontSize: "clamp(24px, 2.3vw, 32px)", lineHeight: 1.15 }}>
             {book.title}
           </h1>
-          <p className="mt-1 text-stone-500">{book.author}</p>
+          <p className="mt-1 text-sm text-stone-500">{book.author}</p>
           <BookFacts data={metadata} fallbackSummary={book.summary} />
         </div>
       </section>
 
-      {/* Right: the arc, with the player that follows it directly underneath. */}
+      {/* Middle: the emotional arc. */}
       <section className="min-h-0">
-        <BookSentiment
-          state={state}
-          active={selected}
-          onSelect={setActive}
-          footer={
-            rows.length > 0 ? (
-              <BookSoundtrack
-                rows={rows}
-                active={selected}
-                onSelect={setActive}
-                // The shelf's own judgement wins: the lookup reads era before
-                // genre, so every classic here would otherwise be "historical".
-                archetype={book.soundArchetype ?? metadata?.soundArchetype ?? null}
-              />
-            ) : null
-          }
-        />
+        <BookSentiment state={state} active={selected} onSelect={setActive} />
+      </section>
+
+      {/* Right: the player, reading the same selected section as the arc. */}
+      <section className="min-h-0">
+        {rows.length > 0 && (
+          <BookSoundtrack
+            rows={rows}
+            active={selected}
+            onSelect={setActive}
+            // The shelf's own judgement wins: the lookup reads era before
+            // genre, so every classic here would otherwise be "historical".
+            archetype={book.soundArchetype ?? metadata?.soundArchetype ?? null}
+          />
+        )}
       </section>
     </div>
   );

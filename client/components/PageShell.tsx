@@ -52,11 +52,36 @@ export default function PageShell({
   );
 }
 
-export function PageTitle({ title, subtitle }: { title: string; subtitle: string }) {
+export function PageTitle({
+  title,
+  subtitle,
+  compact = false,
+}: {
+  title: string;
+  subtitle: string;
+  /**
+   * Smaller, for a page locked to the viewport where the heading competes with
+   * the content for height rather than sitting above it.
+   */
+  compact?: boolean;
+}) {
   return (
     <div className="min-w-0">
-      <h1 style={{ fontSize: "clamp(44px, 12vw, 96px)", lineHeight: 1.05 }}>{title}</h1>
-      <h2 className="mt-3 text-balance" style={{ fontSize: "clamp(19px, 3vw, 28px)", lineHeight: 1.3 }}>
+      <h1
+        style={{
+          fontSize: compact ? "clamp(34px, 6vw, 60px)" : "clamp(44px, 12vw, 96px)",
+          lineHeight: 1.05,
+        }}
+      >
+        {title}
+      </h1>
+      <h2
+        className={`${compact ? "mt-1" : "mt-3"} text-balance`}
+        style={{
+          fontSize: compact ? "clamp(16px, 2vw, 21px)" : "clamp(19px, 3vw, 28px)",
+          lineHeight: 1.3,
+        }}
+      >
         {subtitle}
       </h2>
     </div>
