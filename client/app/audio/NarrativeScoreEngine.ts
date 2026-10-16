@@ -6,6 +6,7 @@ import {
   type StemKey,
   type VoiceParams,
 } from "@/app/audio/score";
+import { createRunningContext, isRunning } from "@/app/audio/audioContext";
 import type { ChapterEmotions } from "@/workers/bookML.types";
 
 /**
@@ -63,11 +64,7 @@ export class NarrativeScoreEngine {
   public async init(): Promise<void> {
     if (this.isLoaded) return;
 
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new AudioContextClass();
+    const ctx = await createRunningContext();
     this.audioCtx = ctx;
 
     // Notches 2kHz to leave headroom for audiobook narration.
@@ -390,7 +387,16 @@ export class NarrativeScoreEngine {
     ) as Record<StemKey, number>;
   }
 
-  public getStatus(): { isLoaded: boolean; isPlaying: boolean } {
-    return { isLoaded: this.isLoaded, isPlaying: this.isPlaying };
+  public getStatus(): {
+    isLoaded: boolean;
+    isPlaying: boolean;
+    /** False when the browser is holding the context suspended. */
+    audible: boolean;
+  } {
+    return {
+      isLoaded: this.isLoaded,
+      isPlaying: this.isPlaying,
+      audible: isRunning(this.audioCtx),
+    };
   }
 }

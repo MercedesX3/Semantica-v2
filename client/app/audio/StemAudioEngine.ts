@@ -1,3 +1,4 @@
+import { createRunningContext, isRunning } from "@/app/audio/audioContext";
 import { STEM_KEYS, stemWeights, type StemKey } from "@/app/audio/score";
 import type { SoundArchetype } from "@/lib/bookMetadata";
 import type { ChapterEmotions } from "@/workers/bookML.types";
@@ -147,15 +148,16 @@ export class StemAudioEngine {
   private isLoaded = false;
   private isPlaying = false;
 
-  /** Creates the AudioContext and the output chain. Fetches nothing. */
+  /**
+   * Creates the AudioContext and the output chain. Fetches nothing.
+   *
+   * Call this first, straight out of the tap: it starts the context while the
+   * gesture is still live, so the stem download that follows cannot outlive it.
+   */
   public async init(): Promise<void> {
     if (this.audioCtx) return;
 
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new AudioContextClass();
+    const ctx = await createRunningContext();
     this.audioCtx = ctx;
 
     // Notches 2kHz to leave headroom for audiobook narration.
@@ -368,11 +370,14 @@ export class StemAudioEngine {
     isLoaded: boolean;
     isPlaying: boolean;
     archetype: SoundArchetype | null;
+    /** False when the browser is holding the context suspended. */
+    audible: boolean;
   } {
     return {
       isLoaded: this.isLoaded,
       isPlaying: this.isPlaying,
       archetype: this.archetype,
+      audible: isRunning(this.audioCtx),
     };
   }
 }
