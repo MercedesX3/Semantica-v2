@@ -229,6 +229,14 @@ export default function BookSoundtrack({
 
       engine.start(row);
       setPlaying(true);
+
+      // A browser that refuses to start the context makes no sound and raises
+      // nothing, which reads as a broken player. Say what it is instead.
+      if (!engine.getStatus().audible) {
+        setError(
+          "Your browser is holding audio muted. On iPhone check the ring/silent switch on the side, then press play again.",
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "The score wouldn't start.");
     } finally {
